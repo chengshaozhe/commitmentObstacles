@@ -287,7 +287,7 @@ class ModelControllerOnline:
 
     def __call__(self, playerGrid, targetGrid1, targetGrid2, obstacles):
         QDict = self.runVI((targetGrid1, targetGrid2), obstacles)
-        actionDict = QDict[playerGrid, (targetGrid1, targetGrid2)]
+        actionDict = QDict[(playerGrid, (targetGrid1, targetGrid2))]
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:
