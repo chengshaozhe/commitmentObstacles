@@ -56,7 +56,7 @@ class DrawNewState():
         self.widthLineStepSpace = drawBackground.widthLineStepSpace
         self.heightLineStepSpace = drawBackground.heightLineStepSpace
 
-    def __call__(self, targetPositionA, targetPositionB, playerPosition):
+    def __call__(self, targetPositionA, targetPositionB, playerPosition, obstacles):
         self.drawBackground()
         pg.draw.rect(self.screen, self.targetColor, [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.2) * self.widthLineStepSpace),
                                                      np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.2) * self.heightLineStepSpace), self.targetRadius * 2, self.targetRadius * 2])
@@ -64,6 +64,9 @@ class DrawNewState():
                                                      np.int((targetPositionB[1] + self.leaveEdgeSpace + 0.2) * self.heightLineStepSpace), self.targetRadius * 2, self.targetRadius * 2])
         pg.draw.circle(self.screen, self.playerColor, [np.int((playerPosition[0] + self.leaveEdgeSpace + 0.5) * self.widthLineStepSpace),
                                                        np.int((playerPosition[1] + self.leaveEdgeSpace + 0.5) * self.heightLineStepSpace)], self.playerRadius)
+
+        [pg.draw.rect(self.screen, [0, 0, 0], [np.int((obstacle[0] + self.leaveEdgeSpace) * self.widthLineStepSpace),
+                                               np.int((obstacle[1] + self.leaveEdgeSpace) * self.heightLineStepSpace), self.widthLineStepSpace, self.widthLineStepSpace]) for obstacle in obstacles]
         pg.display.flip()
         return self.screen
 

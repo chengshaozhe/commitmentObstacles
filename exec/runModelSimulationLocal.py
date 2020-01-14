@@ -13,11 +13,11 @@ import pandas as pd
 
 from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
-from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnlineReward
+from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
 from src.simulationTrial import NormalTrial, SpecialTrial, NormalTrialWithGoal, SpecialTrialWithGoal, NormalTrialRewardOnline, SpecialTrialRewardOnline
-from src.experiment import Experiment
+from src.experiment import ObstacleExperiment
 from src.design import CreatExpCondition, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue
-from machinePolicy.onlineVI import runVI
+from machinePolicy.onlineVIWithObstacle import runVI
 
 
 def main():
@@ -64,8 +64,8 @@ def main():
 
     distanceDiffList = [0, 2, 4]
     minDisList = range(5, 15)
-    intentionedDisToTargetList = [2, 4, 6]
-    rectAreaSize = [6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 36]
+    intentionedDisToTargetList = [4, 6]
+    rectAreaSize = [36]
     lineAreaSize = [4, 5, 6, 7, 8, 9, 10]
 
     condition = namedtuple('condition', 'name areaType distanceDiff minDis areaSize intentionedDisToTarget')
@@ -119,27 +119,27 @@ def main():
             noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
     # deubg
-            # conditionList = [expCondition] * 27
+            conditionList = [expCondition] * 27
             # noiseDesignValues = ['special'] * 27
     # debug
             # modelController = ModelController(policy, gridSize, softmaxBeta)
             # modelControllerWithGoal = ModelControllerWithGoal(gridSize, softmaxBeta, goalPolicy, priorBeta)
 
-            modelController = ModelControllerOnlineReward(gridSize, softmaxBeta, runVI)
+            modelController = ModelControllerOnline(softmaxBeta, runVI)
             controller = modelController
 
-            # normalTrial = NormalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
-            # specialTrial = SpecialTrial(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary)
+            normalTrial = NormalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
+            specialTrial = SpecialTrial(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary)
             # normalTrial = NormalTrialWithGoal(controller, drawNewState, drawText, normalNoise, checkBoundary, initPrior, inferGoalPosterior)
             # specialTrial = SpecialTrialWithGoal(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary, initPrior, inferGoalPosterior)
-            normalTrial = NormalTrialRewardOnline(controller, drawNewState, drawText, normalNoise, checkBoundary, rewardVariance)
-            specialTrial = SpecialTrialRewardOnline(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary, rewardVariance)
+            # normalTrial = NormalTrialRewardOnline(controller, drawNewState, drawText, normalNoise, checkBoundary, rewardVariance)
+            # specialTrial = SpecialTrialRewardOnline(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary, rewardVariance)
 
             experimentValues = co.OrderedDict()
             experimentValues["name"] = "rewardVariance" + str(rewardVariance) + '_' + str(i)
             writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
-            experiment = Experiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
+            experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
             experiment(noiseDesignValues, conditionList)
 
 

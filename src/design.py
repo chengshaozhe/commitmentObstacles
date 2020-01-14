@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import itertools as it
+import math
 
 
 def calculateIncludedAngle(vector1, vector2):
@@ -141,11 +142,23 @@ class SamplePositionFromCondition:
         return playerGrid, target1, target2, chooseConditionDF
 
 
+def rotatePoint(pointA, pointB, height, angle):
+    x1, y1 = pointA
+    x2, y2 = pointB
+    y1 = height - y1
+    y2 = height - y2
+    radian = math.radians(angle)
+    x = (x1 - x2) * math.cos(radian) - (y1 - y2) * math.sin(radian) + x2
+    y = (x1 - x2) * math.sin(radian) + (y1 - y2) * math.cos(radian) + y2
+    y = height - y
+    return (int(x), int(y))
+
+
 if __name__ == '__main__':
     dimension = 15
     direction = [0, 90, 180, 270]
     import pygame
-    from src.visualization import DrawBackground, DrawNewState, DrawImage, DrawText
+    from visualization import DrawBackground, DrawNewState, DrawImage, DrawText
     # pygame.init()
     screenWidth = 600
     screenHeight = 600
@@ -164,115 +177,24 @@ if __name__ == '__main__':
     drawBackground = DrawBackground(screen, dimension, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
 
-    creatStraightLineCondition = CreatStraightLineCondition(direction, dimension)
-    width, height, distance, distanceDiff = [2, 2, 2, 0]
+    pointList = [(1, 1), (6, 11), (11, 6)]
+    center = (7, 7)
+    angle = 0
+    obstacles = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
+    # obstacles = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
+    # obstacles = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
 
-    target1, target2, playerGrid = creatStraightLineCondition(width, height, distance, distanceDiff)
+    t = [rotatePoint(point, center, dimension, angle) for point in pointList]
+    print(t)
 
-    import pandas as pd
-    df = pd.DataFrame(columns=('playerGrid', 'target1', 'target2'))
-    coordinations = tuple(it.product(range(1, dimension - 1), range(1, dimension - 1)))
-    stateAll = list(it.combinations(coordinations, 3))
-    # print(len(stateAll))
-    # condition = []
-    # index = 0
-    distanceDiffList = [0, 2, 4]
-    intentionedDisToTargetList = [2, 4, 6]
-    areaSize = [[3, 4, 5, 6], [3, 4, 5, 6]]
-
-    # for diff in distanceDiffList:
-    #     for state in stateAll:
-    #         playerGrid, target1, target2 = state
-    #         avoidCommitmentZone, distanceDiff = calculateAvoidCommitmnetZone(playerGrid, target1, target2)
-    #         dis1 = np.linalg.norm(np.array(playerGrid) - np.array(target1), ord=1)
-    #         dis2 = np.linalg.norm(np.array(playerGrid) - np.array(target2), ord=1)
-    #         minDis = min(dis1, dis2)
-
-    #         if len(avoidCommitmentZone) > 3 and distanceDiff == diff and minDis > 4 and isZoneALine(avoidCommitmentZone) == True:
-    #             df = df.append(pd.DataFrame({'index': [index], 'distanceDiff': distanceDiff, 'playerGrid': [playerGrid], 'target1': [target1], 'target2': [target2]}))
-    #             index += 1
-
-    # df.to_csv('NoAvoidCommitmentZone.csv')
-
-    # intentionedDisToTarget = minDis - areaSize
-    distanceDiffList = [0, 2, 4]
-    minDisList = range(5, 15)
-    intentionedDisToTargetList = [2, 4, 6]
-    rectAreaSize = [6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 36]
-    lineAreaSize = [4, 5, 6, 7, 8, 9, 10]
-    from collections import namedtuple
-    condition = namedtuple('condition', 'name areaType distanceDiff minDis areaSize intentionedDisToTarget')
-
-    expCondition = condition(name='expCondition', areaType='rect', distanceDiff=[0], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-
-    rectCondition = condition(name='controlRect', areaType='rect', distanceDiff=[2, 4], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    straightLineCondition = condition(name='straightLine', areaType='straightLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    midLineCondition = condition(name='MidLine', areaType='midLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    noAreaCondition = condition(name='noArea', areaType='none', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=[0], intentionedDisToTarget=intentionedDisToTargetList)
-
-    import os
-    import pandas as pd
-    picturePath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'conditionData'))
-    df = pd.read_csv(os.path.join(picturePath, 'DesignConditionForAvoidCommitmentZone.csv'))
-    df['intentionedDisToTargetMin'] = df.apply(lambda x: x['minDis'] - x['avoidCommitmentZone'], axis=1)
-    # print(df.head())
-    # df.to_csv('condition.csv')
-
-    width = [3, 4, 5]
-    height = [3, 4, 5]
-    intentionDis = [2, 4, 6]
-    direction = [45, 135, 225, 315]
-    gridSize = 15
-
-    createExpCondition = CreatExpCondition(direction, gridSize)
-    expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
-    random.shuffle(expDesignValues)
-    numExpTrial = len(expDesignValues)
-
-    samplePositionFromCondition = SamplePositionFromCondition(df, createExpCondition, expDesignValues)
-
-    numControlTrial = int(numExpTrial * 2 / 3)
-    conditionList = list([expCondition] * numExpTrial + [rectCondition] * numExpTrial + [straightLineCondition] * numControlTrial + [midLineCondition] * numControlTrial + [noAreaCondition] * numControlTrial)
-
-    # conditionList = list([expCondition] * numExpTrial)
-
-    random.shuffle(conditionList)
-    minDisList = []
-    timeStep = 0
-    for index, condition in enumerate(conditionList):
-        print('index:', index + 1)
-        playerGrid, target1, target2, chooseConditionDF = samplePositionFromCondition(condition)
-        minDis = chooseConditionDF['minDis'] + chooseConditionDF['distanceDiff']
-        minDisList.append(minDis)
-        print(condition)
-        print(chooseConditionDF)
-        pause = True
-        pygame.init()
-        saveImage = False
-        saveImageDir = os.path.join(os.path.join(os.path.abspath(os.path.join(os.getcwd(), os.pardir)), 'data'), 'gg')
-        if not os.path.exists(saveImageDir):
-            os.makedirs(saveImageDir)
-        while pause:
-            screen = drawNewState(target1, target2, playerGrid)
-            if saveImage == True:
-                pygame.image.save(screen, saveImageDir + '/' + format(timeStep, '04') + ".png")
-            for event in pygame.event.get():
-                if event.type == pygame.KEYDOWN:
-                    pause = False
-                    timeStep += 1
-                if event.type == pygame.QUIT:
-                    pygame.quit()
+    playerGrid, target1, target2 = t
+    pause = True
+    pygame.init()
+    while pause:
+        screen = drawNewState(target1, target2, playerGrid, obstacles)
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                pause = False
+            if event.type == pygame.QUIT:
+                pygame.quit()
     pygame.quit()
-    print('minDis:', np.mean(minDisList))
-
-    # for design in expDesignValues:
-    #     playerGrid, target1, target2, direction = createExpCondition(design[0], design[1], design[2])
-    #     pause = True
-    #     while pause:
-    #         drawNewState(target1, target2, playerGrid)
-    #         for event in pygame.event.get():
-    #             if event.type == pygame.KEYDOWN:
-    #                 pause = False
-    #             if event.type == pygame.QUIT:
-    #                 pygame.quit()
-    # pygame.quit()

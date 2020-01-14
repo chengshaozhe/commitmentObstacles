@@ -45,8 +45,13 @@ class ObstacleExperiment():
     def __call__(self, noiseDesignValues, conditionList):
         for trialIndex, condition in enumerate(conditionList):
             playerGrid, bean1Grid, bean2Grid, chooseConditionDF = self.samplePositionFromCondition(condition)
+
+            playerGrid, bean1Grid, bean2Grid = [(1, 1), (6, 11), (11, 6)]
+            obstacles = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
+            # obstacles = random.choice(obstaclesStates)
+
             if isinstance(noiseDesignValues[trialIndex], int):
-                results = self.normalTrial(bean1Grid, bean2Grid, playerGrid, noiseDesignValues[trialIndex])
+                results = self.normalTrial(bean1Grid, bean2Grid, playerGrid, obstacles, noiseDesignValues[trialIndex])
             else:
                 results = self.specialTrial(bean1Grid, bean2Grid, playerGrid)
 

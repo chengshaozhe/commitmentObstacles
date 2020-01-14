@@ -27,6 +27,8 @@ def inferGoal(originGrid, aimGrid, targetGridA, targetGridB):
 def calculateSoftmaxProbability(acionValues, beta):
     newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
 
+    return newProbabilityList
+
 
 class NormalNoise():
     def __init__(self, actionSpace, gridSize):
@@ -268,7 +270,7 @@ class ModelControllerOnlineReward:
         self.goalPolicy = goalPolicy
 
     def __call__(self, playerGrid, targetGrid1, targetGrid2, goalRewardList):
-        actionDict = runVI((targetGrid1, targetGrid2), goalRewardList)
+        QDict = runVI((targetGrid1, targetGrid2), goalRewardList)
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:
@@ -279,15 +281,16 @@ class ModelControllerOnlineReward:
 
 
 class ModelControllerOnline:
-    def __init__(self, softmaxBeta):
+    def __init__(self, softmaxBeta, runVI):
         self.softmaxBeta = softmaxBeta
+        self.runVI = runVI
 
     def __call__(self, playerGrid, targetGrid1, targetGrid2, obstacles):
-        actionDict = runVI((targetGrid1, targetGrid2, obstacles))
+        QDict = self.runVI((targetGrid1, targetGrid2), obstacles)
+        actionDict = QDict[playerGrid, (targetGrid1, targetGrid2)]
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:
             action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
-
         aimePlayerGrid = tuple(np.add(playerGrid, action))
         return aimePlayerGrid, action

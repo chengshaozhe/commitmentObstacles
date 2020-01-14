@@ -176,8 +176,9 @@ def Q_from_V(s, a, T=None, R=None, V=None, gamma=None):
                 for (s_n, p) in T[s][a].iteritems()])
 
 
-def runVI(sheep_states, obstacles_states, goalRewardList):
+def runVI(sheep_states, obstacles_states):
     gridSize = 15
+    goalRewardList = [100, 100]
     env = GridWorld("test", nx=gridSize, ny=gridSize)
 
     terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
@@ -217,27 +218,24 @@ def runVI(sheep_states, obstacles_states, goalRewardList):
     Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
     Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-    mapValue = 'V'
-    heatMapValue = eval(mapValue)
-    y = dict_to_array(heatMapValue)
-    y = y.reshape((gridSize, gridSize))
-    df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
-    sns.heatmap(df, annot=True, fmt='.3f')
-    plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, noise, goalRewardList))
-    plt.show()
+    # mapValue = 'V'
+    # heatMapValue = eval(mapValue)
+    # y = dict_to_array(heatMapValue)
+    # y = y.reshape((gridSize, gridSize))
+    # df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+    # sns.heatmap(df, annot=True, fmt='.3f')
+    # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, noise, goalRewardList))
+    # plt.show()
 
-    return Q_dict[(3, 1), sheep_states]
+    return Q_dict
 
 
 if __name__ == '__main__':
 
     sheep_states = ((6, 11), (11, 6))
-    # obstacles_states = ((3, 3), (4, 4), (4, 3), (3, 4))
-    # obstacles_states = ((6, 3), (6, 4), (4, 6), (3, 6))
-    obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
-    # obstacles_states = ((3, 3), (3, 5), (3, 5), (3, 7), (7, 3), (6, 3), (5, 3))
+    # obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
+    # obstacles_states = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
+    obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
 
-    goalRewardList = [100, 100]
-
-    Q_dict = runVI(sheep_states, obstacles_states, goalRewardList)
+    Q_dict = runVI(sheep_states, obstacles_states)
     print(Q_dict)
