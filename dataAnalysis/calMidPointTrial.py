@@ -124,7 +124,28 @@ def isTrajHasMidPoints(trajectory, target1, target2):
     trajectory = list(map(tuple, trajectory))
     midPoint = calMidPoints(trajectory, target1, target2)
     hasMidPoint = 1 if midPoint in trajectory else 0
+    return hasMidPoint
 
+
+def calAvoidPoints(playerGrid, minSteps):
+    addSteps = minSteps / 2 + 1
+    x, y = playerGrid
+    if x < 7 and y < 7:
+        avoidPoint = (x + addSteps, y + addSteps)
+    if x < 7 and y > 7:
+        avoidPoint = (x + addSteps, y - addSteps)
+    if x > 7 and y < 7:
+        avoidPoint = (x - addSteps, y + addSteps)
+    elif x > 7 and y > 7:
+        avoidPoint = (x - addSteps, y - addSteps)
+    print(playerGrid, minSteps, avoidPoint)
+    return avoidPoint
+
+
+def isTrajHasAvoidPoints(trajectory, playerGrid, minSteps):
+    trajectory = list(map(tuple, trajectory))
+    avoidPoint = calAvoidPoints(playerGrid, minSteps)
+    hasMidPoint = 1 if avoidPoint in trajectory else 0
     return hasMidPoint
 
 
@@ -150,18 +171,18 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['human', 'softmaxBeta2.5']
+    participants = ['softmaxBeta2.5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
         nubOfSubj = len(df["name"].unique())
         print(participant, nubOfSubj)
-
+        print(df.columns)
         # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
 
-        df = df[(df['areaType'] == 'rect')]
+        df = df[(df['minSteps'] == 2)]
         # print(len(df))
-        df['hasMidPoint'] = df.apply(lambda x: isTrajHasMidPoints(eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+        df['hasMidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
 
         # dfExpTrail = df[(df['areaType'] == 'rect')]
 
@@ -212,7 +233,7 @@ if __name__ == '__main__':
     for i in range(len(statsList)):
         plt.bar(x + width * i, statsList[i], yerr=stdList[i], width=width, label=labels[i])
     plt.xticks(x, xlabels)
-    plt.ylim((0, 0.5))
+    plt.ylim((0, 0.6))
     plt.legend(loc='best')
 
     plt.show()
