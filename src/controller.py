@@ -64,7 +64,6 @@ class AimActionWithNoise():
 
 def backToZoneNoise(playerGrid, trajectory, zone, noiseStep, firstIntentionFlag):
     realPlayerGrid = None
-
     if playerGrid not in zone and tuple(trajectory[-2]) in zone and not firstIntentionFlag:
         realPlayerGrid = trajectory[-3]
         noiseStep = len(trajectory)
@@ -202,7 +201,6 @@ class ModelController():
             action = list(policyForCurrentStateDict.keys())[
                 list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
         aimePlayerGrid = tuple(np.add(playerGrid, action))
-        # pg.time.delay(500)
         return aimePlayerGrid, action
 
 
@@ -255,22 +253,6 @@ class ModelControllerWithGoal:
         actionKeys = self.goalPolicy(playerGrid, targetGrid1).keys()
         actionDict = dict(actionKeys, actionProbs)
 
-        if self.softmaxBeta < 0:
-            action = chooseMaxAcion(actionDict)
-        else:
-            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
-
-        aimePlayerGrid = tuple(np.add(playerGrid, action))
-        return aimePlayerGrid, action
-
-
-class ModelControllerOnlineReward:
-    def __init__(self, softmaxBeta, goalPolicy):
-        self.softmaxBeta = softmaxBeta
-        self.goalPolicy = goalPolicy
-
-    def __call__(self, playerGrid, targetGrid1, targetGrid2, goalRewardList):
-        QDict = runVI((targetGrid1, targetGrid2), goalRewardList)
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:

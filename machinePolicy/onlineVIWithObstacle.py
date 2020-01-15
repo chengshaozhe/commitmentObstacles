@@ -8,7 +8,6 @@ import os
 import pickle
 import sys
 import time
-sys.setrecursionlimit(2**30)
 import pandas as pd
 import seaborn as sns
 
@@ -58,7 +57,6 @@ def grid_transition(s, a, is_valid=None, terminals=()):
 
 
 def grid_transition_stochastic(s=(), a=(), noiseSpace=[], is_valid=None, terminals=(), mode=0.9):
-
     if s in terminals:
         return {s: 1}
 
@@ -121,7 +119,6 @@ class ValueIteration():
         gamma, epsilon, max_iter = self.gamma, self.epsilon, self.max_iter
         excludedState = (set(self.terminals) | set(self.obstacles))
         S_iter = tuple(filter(lambda s: s not in excludedState, S))
-        # S_iter = tuple(filter(lambda s: s not in self.terminals, S))
 
         V_init = {s: 1 for s in S_iter}
         Vterminals = {s: 0 for s in excludedState}
@@ -193,7 +190,7 @@ def runVI(sheep_states, obstacles_states):
     # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
-    noise = 0.1
+    noise = 0.0
     mode = 1 - noise
     # transition_function = ft.partial(grid_transition_stochastic, noiseSpace=noiseSpace, terminals=sheep_states, is_valid=env.is_state_valid, mode=mode)
 
@@ -231,8 +228,8 @@ def runVI(sheep_states, obstacles_states):
 
 
 if __name__ == '__main__':
-
     sheep_states = ((6, 11), (11, 6))
+
     # obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
     # obstacles_states = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
     obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))

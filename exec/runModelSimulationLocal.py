@@ -14,7 +14,7 @@ import pandas as pd
 from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
 from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
-from src.simulationTrial import NormalTrial, SpecialTrial, NormalTrialWithGoal, SpecialTrialWithGoal, NormalTrialRewardOnline, SpecialTrialRewardOnline
+from src.simulationTrial import NormalTrial, SpecialTrial
 from src.experiment import ObstacleExperiment
 from src.design import CreatExpCondition, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
 from machinePolicy.onlineVIWithObstacle import runVI
@@ -62,7 +62,6 @@ def main():
     intentionDis = [3, 4, 5, 6]
     rotateAngles = [0, 90, 180, 270]
     minSteps = [2, 4, 6]
-    expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps]
 
     obstaclesCondition = [[(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)], [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)], [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]]
     obstaclesMaps = dict(zip(minSteps, obstaclesCondition))
@@ -98,13 +97,13 @@ def main():
     # goalPolicy = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGoalGird15_policy.pkl"), "rb"))
 
     initPrior = [0.5, 0.5]
-    inferGoalPosterior = InferGoalPosterior(goalPolicy)
+    # inferGoalPosterior = InferGoalPosterior(goalPolicy)
     priorBeta = 5
     softmaxBeta = 2.5
     rewardVarianceList = [50]
     # for softmaxBeta in softmaxBetaList:
 
-    for i in range(10):
+    for i in range(16):
         print(i)
         # expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
         # numExpTrial = len(expDesignValues)
@@ -120,15 +119,22 @@ def main():
 
         # random.shuffle(conditionList)
         # conditionList.append(expCondition)
+        numBlocks = 4
+        expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps] * numBlocks
+        random.shuffle(expDesignValues)
+
+        numExpTrial = len(expDesignValues)
+
         expCondition = 'exp'
-        conditionList = [expCondition] * 27
+        conditionList = [expCondition] * numExpTrial
         numNormalTrials = len(conditionList)
 
-        numTrialsPerBlock = 3
-        noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock))
-        noiseCondition.append((1, 1, 1))
-        blockNumber = int(numNormalTrials / numTrialsPerBlock)
-        noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
+        # numTrialsPerBlock = 3
+        # noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock))
+        # noiseCondition.append((1, 1, 1))
+        # blockNumber = int(numNormalTrials / numTrialsPerBlock)
+        # noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
+        noiseDesignValues = [0] * numNormalTrials
 
         createExpCondition = CreatExpCondition(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
         samplePositionFromCondition = SamplePositionFromCondition(createExpCondition, expDesignValues)

@@ -88,8 +88,9 @@ class SamplePositionFromCondition:
 
     def __call__(self, condition):
         playerGrid, target1, target2, obstacles = self.createExpCondition(self.expDesignValues[self.index][0], self.expDesignValues[self.index][1], self.expDesignValues[self.index][2], self.expDesignValues[self.index][3])
+        minSteps = self.expDesignValues[self.index][3]
         self.index += 1
-        return playerGrid, target1, target2, obstacles
+        return playerGrid, target1, target2, obstacles, minSteps
 
 
 class RotatePoint:
