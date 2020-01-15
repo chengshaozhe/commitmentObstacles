@@ -57,7 +57,7 @@ def createExpDesignValue(width, height, distance):
     return expDesignValues
 
 
-class CreatExpCondition():
+class CreatMap():
     def __init__(self, rotateAngles, dimension, obstaclesMaps, rotatePoint):
         self.rotateAngles = rotateAngles
         self.dimension = dimension
@@ -81,13 +81,14 @@ class CreatExpCondition():
 
 
 class SamplePositionFromCondition:
-    def __init__(self, createExpCondition, expDesignValues):
-        self.createExpCondition = createExpCondition
+    def __init__(self, creatMap, expDesignValues):
+        self.creatMap = creatMap
         self.expDesignValues = expDesignValues
         self.index = 0
 
     def __call__(self, condition):
-        playerGrid, target1, target2, obstacles = self.createExpCondition(self.expDesignValues[self.index][0], self.expDesignValues[self.index][1], self.expDesignValues[self.index][2], self.expDesignValues[self.index][3])
+        width, height, distance, minSteps = self.expDesignValues[self.index]
+        playerGrid, target1, target2, obstacles = self.creatMap(width, height, distance, minSteps)
         minSteps = self.expDesignValues[self.index][3]
         self.index += 1
         return playerGrid, target1, target2, obstacles, minSteps
@@ -155,14 +156,14 @@ if __name__ == '__main__':
     obstaclesMaps = dict(zip(minSteps, obstaclesCondition))
 
     rotatePoint = RotatePoint(dimension)
-    createExpCondition = CreatExpCondition(rotateAngles, dimension, obstaclesMaps, rotatePoint)
-    samplePositionFromCondition = SamplePositionFromCondition(createExpCondition, expDesignValues)
+    creatMap = CreatMap(rotateAngles, dimension, obstaclesMaps, rotatePoint)
+    samplePositionFromCondition = SamplePositionFromCondition(creatMap, expDesignValues)
 
 
 # sample
     condition = 'exp'
     for _ in range(10):
-        playerGrid, target1, target2, obstacles = samplePositionFromCondition(condition)
+        playerGrid, target1, target2, obstacles, minSteps = samplePositionFromCondition(condition)
         # obstacles = creatObstacles(pointList)
 
         # playerGrid = (1, 1)

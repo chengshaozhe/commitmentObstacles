@@ -16,7 +16,7 @@ class ObstacleExperiment():
             if isinstance(noiseDesignValues[trialIndex], int):
                 results = self.normalTrial(target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex])
             else:
-                results = self.specialTrial(target1, target2, playerGrid)
+                results = self.specialTrial(target1, target2, playerGrid, obstacles)
 
             results["noiseNumber"] = noiseDesignValues[trialIndex]
             results["playerGrid"] = str(playerGrid)
