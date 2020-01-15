@@ -173,66 +173,74 @@ def Q_from_V(s, a, T=None, R=None, V=None, gamma=None):
                 for (s_n, p) in T[s][a].iteritems()])
 
 
-def runVI(sheep_states, obstacles_states):
-    gridSize = 15
-    goalRewardList = [100, 100]
-    env = GridWorld("test", nx=gridSize, ny=gridSize)
+class RunVI:
+    def __init__(self, gridSize, noise, noiseSpace):
+        self.gridSize = gridSize
+        self.noise = noise
+        self.noiseSpace = noiseSpace
 
-    terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
+    def __call__(self, sheep_states, obstacles_states):
+        env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
 
-    env.add_obstacles(list(obstacles_states))
-    env.add_feature_map("goal", terminalValue, default=0)
-    env.add_terminals(list(sheep_states))
+        goalRewardList = [100, 100]
+        terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
 
-    S = tuple(it.product(range(env.nx), range(env.ny)))
+        env.add_obstacles(list(obstacles_states))
+        env.add_feature_map("goal", terminalValue, default=0)
+        env.add_terminals(list(sheep_states))
 
-    A = ((1, 0), (0, 1), (-1, 0), (0, -1))
-    # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-    noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+        S = tuple(it.product(range(env.nx), range(env.ny)))
+        A = ((1, 0), (0, 1), (-1, 0), (0, -1))
 
-    noise = 0.0
-    mode = 1 - noise
-    # transition_function = ft.partial(grid_transition_stochastic, noiseSpace=noiseSpace, terminals=sheep_states, is_valid=env.is_state_valid, mode=mode)
+        mode = 1 - self.noise
+        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=sheep_states, is_valid=env.is_state_valid, mode=mode)
 
-    transition_function = ft.partial(grid_transition_noise, A=A, terminals=sheep_states, is_valid=env.is_state_valid, noise=noise)
+        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=sheep_states, is_valid=env.is_state_valid, noise=self.noise)
 
-    T = {s: {a: transition_function(s, a) for a in A} for s in S}
-    T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
-                         for a in A] for s in S])
+        T = {s: {a: transition_function(s, a) for a in A} for s in S}
+        T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
+                             for a in A] for s in S])
 
-    reward_func = ft.partial(
-        grid_reward, env=env, const=-1, terminals=sheep_states)
+        reward_func = ft.partial(grid_reward, env=env, const=-1, terminals=sheep_states)
 
-    R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
-    R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
-                         for a in A] for s in S])
+        R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
+        R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
+                             for a in A] for s in S])
 
-    gamma = 0.9
-    value_iteration = ValueIteration(gamma, epsilon=0.0001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
-    V = value_iteration(S, A, T, R)
+        gamma = 0.9
+        valueIteration = ValueIteration(gamma, epsilon=0.0001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
+        V = valueIteration(S, A, T, R)
+        V_arr = V_dict_to_array(V, S)
 
-    V_arr = V_dict_to_array(V, S)
-    Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
-    Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
+        Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-    # mapValue = 'V'
-    # heatMapValue = eval(mapValue)
-    # y = dict_to_array(heatMapValue)
-    # y = y.reshape((gridSize, gridSize))
-    # df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
-    # sns.heatmap(df, annot=True, fmt='.3f')
-    # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, noise, goalRewardList))
-    # plt.show()
+        # mapValue = 'V'
+        # heatMapValue = eval(mapValue)
+        # y = dict_to_array(heatMapValue)
+        # y = y.reshape((self.gridSize, self.gridSize))
+        # df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+        # sns.heatmap(df, annot=True, fmt='.3f')
+        # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+        # plt.show()
 
-    return Q_dict
+        return Q_dict
 
 
 if __name__ == '__main__':
+
+    gridSize = 15
+    noise = 0.1
+    noiseSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+
+    runVI = RunVI(gridSize, noise, noiseSpace)
+
     sheep_states = ((6, 11), (11, 6))
 
     # obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
-    # obstacles_states = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
-    obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
+    obstacles_states = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
+    # obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
 
     Q_dict = runVI(sheep_states, obstacles_states)
     print(Q_dict)

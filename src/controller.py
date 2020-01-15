@@ -62,6 +62,23 @@ class AimActionWithNoise():
         return realPlayerGrid, realAction
 
 
+def calMidPoints(target1, target2, zone):
+    midpoints = list([(target1[0], target2[1]), (target2[0], target1[1])])
+    midPoint = list(set(zone).intersection(set(midpoints)))[0]
+    return midPoint
+
+
+def backToCrossPointNoise(trajectory, target1, target2, zone, noiseStep, firstIntentionFlag):
+    playerGrid = tuple(trajectory[-1])
+    midpoint = calMidPoints(target1, target2, zone)
+    realPlayerGrid = None
+    if playerGrid not in zone and tuple(trajectory[-2]) in zone and not firstIntentionFlag:
+        realPlayerGrid = midpoint
+        noiseStep = len(trajectory)
+        firstIntentionFlag = True
+    return realPlayerGrid, noiseStep, firstIntentionFlag
+
+
 def backToZoneNoise(playerGrid, trajectory, zone, noiseStep, firstIntentionFlag):
     realPlayerGrid = None
 

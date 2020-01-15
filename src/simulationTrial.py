@@ -57,7 +57,8 @@ def checkTerminationOfTrial(bean1Grid, bean2Grid, humanGrid):
 
 
 class NormalTrial():
-    def __init__(self, controller, drawNewState, drawText, normalNoise, checkBoundary):
+    def __init__(self, renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary):
+        self.renderOn = renderOn
         self.controller = controller
         self.drawNewState = drawNewState
         self.drawText = drawText
@@ -72,13 +73,14 @@ class NormalTrial():
         results = co.OrderedDict()
         aimActionList = list()
         totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(bean1Grid), ord=1))
-        noiseStep = random.sample(list(range(1, totalStep + 1)), designValues)
+        noiseStep = sorted(random.sample(list(range(1, totalStep)), designValues))
         stepCount = 0
 
         realPlayerGrid = initialPlayerGrid
         pause = True
         while pause:
-            # self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
+            if self.renderOn:
+                self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
             stepCount = stepCount + 1
             noisePlayerGrid, realAction = self.normalNoise(realPlayerGrid, aimAction, noiseStep, stepCount)
@@ -97,15 +99,16 @@ class NormalTrial():
 
 
 class SpecialTrial():
-    def __init__(self, controller, drawNewState, drawText, backToZoneNoise, checkBoundary):
+    def __init__(self, renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary):
+        self.renderOn = renderOn
         self.controller = controller
         self.drawNewState = drawNewState
         self.drawText = drawText
-        self.backToZoneNoise = backToZoneNoise
+        self.specialNoise = specialNoise
         self.checkBoundary = checkBoundary
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid):
-        initialPlayerGrid = playerGrid
+    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles):
+        initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
         trajectory = [initialPlayerGrid]
@@ -114,28 +117,26 @@ class SpecialTrial():
         firstIntentionFlag = False
         noiseStep = list()
         stepCount = 0
-        goalList = list()
 
         avoidCommitmentZone = calculateAvoidCommitmnetZone(initialPlayerGrid, bean1Grid, bean2Grid)
         pause = True
         realPlayerGrid = initialPlayerGrid
         while pause:
-            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid)
-            goal = inferGoal(trajectory[-1], aimPlayerGrid, bean1Grid, bean2Grid)
-            goalList.append(goal)
+            if self.renderOn:
+                self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
+            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
             stepCount = stepCount + 1
 
             if len(trajectory) > 1:
-                self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid)
-                noisePlayerGrid, noiseStep, firstIntentionFlag = self.backToZoneNoise(realPlayerGrid, trajectory, avoidCommitmentZone, noiseStep, firstIntentionFlag)
-                # noisePlayerGrid, noiseStep, firstIntentionFlag = self.backToZoneNoiseNoLine(realPlayerGrid,bean1Grid, bean2Grid, trajectory, avoidCommitmentZone, noiseStep, firstIntentionFlag)
+                noisePlayerGrid, noiseStep, firstIntentionFlag = self.specialNoise(trajectory, bean1Grid, bean2Grid, avoidCommitmentZone, noiseStep, firstIntentionFlag)
                 if noisePlayerGrid:
                     realPlayerGrid = self.checkBoundary(noisePlayerGrid)
                 else:
                     realPlayerGrid = self.checkBoundary(aimPlayerGrid)
             else:
                 realPlayerGrid = self.checkBoundary(aimPlayerGrid)
-
+            if realPlayerGrid in obstacles:
+                realPlayerGrid = tuple(trajectory[-1])
             reactionTime.append(time.get_ticks() - initialTime)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
@@ -145,5 +146,4 @@ class SpecialTrial():
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
         results["noisePoint"] = str(noiseStep)
-        results["goal"] = str(goalList)
         return results
