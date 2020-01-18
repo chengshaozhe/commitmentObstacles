@@ -245,17 +245,31 @@ def calBasePolicy(posteriorList, actionProbList):
 
 
 class InferGoalPosterior:
-    def __init__(self, goalPolicy):
-        self.goalPolicy = goalPolicy
+    def __init__(self, runVI, commitBeta):
+        self.runVI = runVI
+        self.commitBeta = commitBeta
 
     def __call__(self, playerGrid, action, target1, target2, priorList):
         targets = list([target1, target2])
 
-        likelihoodList = [self.goalPolicy(playerGrid, goal).get(action) for goal in targets]
-        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
-        evidence = sum(posteriorUnnormalized)
+        goalPolicy = self.runVI(goal, obstacles) for goal in targets]
+#todo
+        likelihoodList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
 
+
+        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
+
+        evidence = sum(posteriorUnnormalized)
         posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
+
+        diff = abs(posteriorList[0] - posteriorList[1])
+        if diff < self.commitBeta / 10:
+            posteriorUnnormalized = calculateSoftmaxProbability(posteriorUnnormalized, 1 / self.commitBeta)
+        else:
+            posteriorUnnormalized = calculateSoftmaxProbability(posteriorUnnormalized, self.commitBeta)
+        evidence = sum(posteriorUnnormalized)
+        posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
+
         return posteriorList
 
 

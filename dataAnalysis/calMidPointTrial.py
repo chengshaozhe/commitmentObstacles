@@ -181,7 +181,7 @@ if __name__ == '__main__':
 
         df = df[(df['minSteps'] != 10)]
         # print(len(df))
-        df['hasMidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
+        df['hasAvoidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
 
         # dfExpTrail = df[(df['areaType'] == 'rect')]
 
@@ -207,14 +207,14 @@ if __name__ == '__main__':
         # statDF['firstIntentionStepRatio'] = dfExpTrail.groupby('name')["firstIntentionStepRatio"].mean()
         # statDF['goalPosterior'] = dfExpTrail.groupby('name')["goalPosterior"].mean()
 
-        statDF['midTriaPercent'] = df.groupby('name')["hasMidPoint"].sum() / (len(df) / len(df.groupby('name')["hasMidPoint"]))
+        statDF['avoidCommitPoint'] = df.groupby('name')["hasAvoidPoint"].sum() / (len(df) / len(df.groupby('name')["hasAvoidPoint"]))
 
-        # statDF['midTriaPercent'] = df.groupby(['name','minSteps'])["hasMidPoint"].sum() / (len(df) / len(df.groupby(['name','minSteps'])["hasMidPoint"]))
+        # statDF['midTriaPercent'] = df.groupby(['name','minSteps'])["hasAvoidPoint"].sum() / (len(df) / len(df.groupby(['name','minSteps'])["hasAvoidPoint"]))
         # stats = list(statDF.groupby('minSteps')['midTriaPercent'].mean())[:-1]
         # statsList.append(stats)
         print()
 
-        # print(df.groupby('name')["hasMidPoint"].head(6))
+        # print(df.groupby('name')["hasAvoidPoint"].head(6))
 
         # print('firstIntentionStep', np.mean(statDF['firstIntentionStep']))
         print('')
@@ -225,11 +225,22 @@ if __name__ == '__main__':
         stdList.append([calculateSE(statDF[stat]) for stat in stats])
 
     print(statsList)
-    lables = participants
-    # lables = ['Human', 'Agent']
+    print(stdList)
+    # statsList = [[0.48124999999999996], [0.46562499999999996], [0.4270833333333333],[0.4875]]
+    # stdList = [[0.02443813049769197], [0.01927505584370063], [0.027776388854164925],[0.013471506281091268]]
+
+    statsList = [[0.65625], [0.578125], [0.515625], [0.5538194444444444]]
+    stdList = [[0.02840909090909091], [0.022904141330393608], [0.032967604518047755], [0.015022732366528775]]
+
+    labels = ['2', '4', '6', 'all']
+
+    # labels = participants
+    # labels = ['Human', 'Agent']
 
     xlabels = list(statDF.columns)
-    labels = participants
+
+    # xlabels = ['avoidCommit']
+    # labels = participants
     x = np.arange(len(xlabels))
     totalWidth, n = 0.1, len(participants)
     width = totalWidth / n
@@ -239,5 +250,6 @@ if __name__ == '__main__':
     plt.xticks(x, xlabels)
     plt.ylim((0, 1))
     plt.legend(loc='best')
+    plt.title('avoidCommit')  # Intention Consistency
 
     plt.show()

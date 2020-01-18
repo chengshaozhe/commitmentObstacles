@@ -18,7 +18,7 @@ if __name__ == '__main__':
     statData = []
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
-    participants = ['specailnoise0.067_softmaxBeta2.5']
+    participants = ['noise0.067_softmaxBeta2.5']
 
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
@@ -47,7 +47,9 @@ if __name__ == '__main__':
         statData.append(statDF['firstIntentionConsistFinalGoalSpecail'])
 
     # print(ttest_ind(statData[0], statData[1]))
-
+    print(statsList, stdList)
+    statsList = [[0.98, 0.55]]
+    stdList = [[0.0032, 0.0527]]
     xlabels = ['normalTrial', 'specialTrial']
     lables = participants
     x = np.arange(len(xlabels))
