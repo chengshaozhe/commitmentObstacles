@@ -75,6 +75,7 @@ class NormalTrial():
         totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(bean1Grid), ord=1))
         noiseStep = sorted(random.sample(list(range(1, totalStep)), designValues))
         stepCount = 0
+        goalList = list()
 
         realPlayerGrid = initialPlayerGrid
         pause = True
@@ -82,6 +83,8 @@ class NormalTrial():
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
+            goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
+            goalList.append(goal)
             stepCount = stepCount + 1
             noisePlayerGrid, realAction = self.normalNoise(realPlayerGrid, aimAction, noiseStep, stepCount)
             realPlayerGrid = self.checkBoundary(noisePlayerGrid)
@@ -95,6 +98,7 @@ class NormalTrial():
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
         results["noisePoint"] = str(noiseStep)
+        results["goal"] = str(goalList)
         return results
 
 
@@ -117,6 +121,7 @@ class SpecialTrial():
         firstIntentionFlag = False
         noiseStep = list()
         stepCount = 0
+        goalList = list()
 
         avoidCommitmentZone = calculateAvoidCommitmnetZone(initialPlayerGrid, bean1Grid, bean2Grid)
         pause = True
@@ -125,6 +130,8 @@ class SpecialTrial():
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
+            goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
+            goalList.append(goal)
             stepCount = stepCount + 1
 
             if len(trajectory) > 1:
@@ -146,4 +153,5 @@ class SpecialTrial():
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
         results["noisePoint"] = str(noiseStep)
+        results["goal"] = str(goalList)
         return results

@@ -138,7 +138,6 @@ def calAvoidPoints(playerGrid, minSteps):
         avoidPoint = (x - addSteps, y + addSteps)
     elif x > 7 and y > 7:
         avoidPoint = (x - addSteps, y - addSteps)
-    print(playerGrid, minSteps, avoidPoint)
     return avoidPoint
 
 
@@ -157,21 +156,21 @@ def sliceTraj(trajectory, midPoint):
 
 if __name__ == '__main__':
     machinePolicyPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'machinePolicy'))
-    Q_dict = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGoalGird15_policy.pkl"), "rb"))
+    # Q_dict = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGoalGird15_policy.pkl"), "rb"))
     # Q_dict_base = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGird15_policy.pkl"), "rb"))
     softmaxBeta = 2.5
-    softmaxPolicy = SoftmaxPolicy(Q_dict, softmaxBeta)
+    # softmaxPolicy = SoftmaxPolicy(Q_dict, softmaxBeta)
     # basePolicy = BasePolicy(Q_dict_base, softmaxBeta)
     initPrior = [0.5, 0.5]
     inferThreshold = 0.95
-    goalInfernce = GoalInfernce(initPrior, softmaxPolicy)
+    # goalInfernce = GoalInfernce(initPrior, softmaxPolicy)
     calFirstIntentionStep = CalFirstIntentionStep(inferThreshold)
     calFirstIntentionStepRatio = CalFirstIntentionStepRatio(calFirstIntentionStep)
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['softmaxBeta2.5']
+    participants = ['noise0_softmaxBeta2.5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -180,7 +179,7 @@ if __name__ == '__main__':
         print(df.columns)
         # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
 
-        df = df[(df['minSteps'] == 2)]
+        df = df[(df['minSteps'] != 10)]
         # print(len(df))
         df['hasMidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
 
@@ -210,6 +209,11 @@ if __name__ == '__main__':
 
         statDF['midTriaPercent'] = df.groupby('name')["hasMidPoint"].sum() / (len(df) / len(df.groupby('name')["hasMidPoint"]))
 
+        # statDF['midTriaPercent'] = df.groupby(['name','minSteps'])["hasMidPoint"].sum() / (len(df) / len(df.groupby(['name','minSteps'])["hasMidPoint"]))
+        # stats = list(statDF.groupby('minSteps')['midTriaPercent'].mean())[:-1]
+        # statsList.append(stats)
+        print()
+
         # print(df.groupby('name')["hasMidPoint"].head(6))
 
         # print('firstIntentionStep', np.mean(statDF['firstIntentionStep']))
@@ -224,7 +228,7 @@ if __name__ == '__main__':
     lables = participants
     # lables = ['Human', 'Agent']
 
-    xlabels = ['midTriaPercent']
+    xlabels = list(statDF.columns)
     labels = participants
     x = np.arange(len(xlabels))
     totalWidth, n = 0.1, len(participants)
@@ -233,7 +237,7 @@ if __name__ == '__main__':
     for i in range(len(statsList)):
         plt.bar(x + width * i, statsList[i], yerr=stdList[i], width=width, label=labels[i])
     plt.xticks(x, xlabels)
-    plt.ylim((0, 0.6))
+    plt.ylim((0, 1))
     plt.legend(loc='best')
 
     plt.show()

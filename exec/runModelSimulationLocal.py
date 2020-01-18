@@ -106,9 +106,9 @@ def main():
     softmaxBeta = 2.5
     rewardVarianceList = [50]
     # for softmaxBeta in softmaxBetaList:
-    noiseList = [0, 0.1]
+    noiseList = [0]
     for noise in noiseList:
-        for i in range(12):
+        for i in range(16):
             print(i)
             # expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
             # numExpTrial = len(expDesignValues)
@@ -124,7 +124,7 @@ def main():
 
             # random.shuffle(conditionList)
             # conditionList.append(expCondition)
-            numBlocks = 4
+            numBlocks = 5
             expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps] * numBlocks
             random.shuffle(expDesignValues)
             numExpTrial = len(expDesignValues)
@@ -149,8 +149,9 @@ def main():
             if noise == 0:
                 noiseDesignValues = [0] * numNormalTrials
     # deubg
-            # expDesignValues = [specialDesign] * 48
-            # noiseDesignValues = ['special'] * 48
+           # expDesignValues = [specialDesign] * 10
+           # noiseDesignValues = ['special'] * 10
+           # conditionList = [expCondition] * 10
     # debug
 
             creatMap = CreatMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
@@ -171,7 +172,7 @@ def main():
             # specialTrial = SpecialTrialWithGoal(controller, drawNewState, drawText, specialNoise, checkBoundary, initPrior, inferGoalPosterior)
 
             experimentValues = co.OrderedDict()
-            experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
+            experimentValues["name"] = "specailnoise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
             writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
             experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)

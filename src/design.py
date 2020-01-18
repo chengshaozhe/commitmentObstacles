@@ -145,8 +145,8 @@ if __name__ == '__main__':
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
 
 # design
-    width = [6]
-    height = [6]
+    width = [5]
+    height = [5]
     intentionDis = [3, 4, 5, 6]
     rotateAngles = [0, 90, 180, 270]
     minSteps = [2, 4, 6]
