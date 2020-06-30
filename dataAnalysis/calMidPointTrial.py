@@ -170,7 +170,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['noise0_softmaxBeta2.5']
+    participants = ['noise0.067_softmaxBeta0.5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -178,8 +178,9 @@ if __name__ == '__main__':
         print(participant, nubOfSubj)
         print(df.columns)
         # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
+        # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
 
-        df = df[(df['minSteps'] != 10)]
+        df = df[(df['minSteps'] == 6)]
         # print(len(df))
         df['hasAvoidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
 
@@ -226,13 +227,13 @@ if __name__ == '__main__':
 
     print(statsList)
     print(stdList)
-    # statsList = [[0.48124999999999996], [0.46562499999999996], [0.4270833333333333],[0.4875]]
-    # stdList = [[0.02443813049769197], [0.01927505584370063], [0.027776388854164925],[0.013471506281091268]]
+    # statsList = [[0.48124999999999996], [0.46562499999999996], [0.4270833333333333], [0.4875]]
+    # stdList = [[0.02443813049769197], [0.01927505584370063], [0.027776388854164925], [0.013471506281091268]]
 
-    statsList = [[0.65625], [0.578125], [0.515625], [0.5538194444444444]]
-    stdList = [[0.02840909090909091], [0.022904141330393608], [0.032967604518047755], [0.015022732366528775]]
+    # statsList = [[0.65625], [0.578125], [0.515625], [0.5538194444444444]]
+    # stdList = [[0.02840909090909091], [0.022904141330393608], [0.032967604518047755], [0.015022732366528775]]
 
-    labels = ['2', '4', '6', 'all']
+    labels = ['RL Agent', '4', '6', 'all']
 
     # labels = participants
     # labels = ['Human', 'Agent']
