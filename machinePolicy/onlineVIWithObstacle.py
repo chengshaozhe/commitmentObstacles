@@ -201,8 +201,8 @@ class RunVI:
         T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        cost = - goalRewardList[0] / (self.gridSize * 2)
-        reward_func = ft.partial(grid_reward, env=env, const=cost, terminals=sheep_states)
+        stepCost = - goalRewardList[0] / (self.gridSize * 2)
+        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=sheep_states)
 
         R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
         R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
@@ -216,14 +216,14 @@ class RunVI:
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        mapValue = 'V'
-        heatMapValue = eval(mapValue)
-        y = dict_to_array(heatMapValue)
-        y = y.reshape((self.gridSize, self.gridSize))
-        df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-        sns.heatmap(df, annot=True, fmt='.3f')
-        plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
-        plt.show()
+        # mapValue = 'V'
+        # heatMapValue = eval(mapValue)
+        # y = dict_to_array(heatMapValue)
+        # y = y.reshape((self.gridSize, self.gridSize))
+        # df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+        # sns.heatmap(df, annot=True, fmt='.3f')
+        # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+        # plt.show()
 
         return Q_dict
 

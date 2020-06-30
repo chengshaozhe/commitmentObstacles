@@ -61,10 +61,14 @@ def main():
     height = [5]
     intentionDis = [3, 4, 5, 6]
     rotateAngles = [0, 90, 180, 270]
-    minSteps = [2, 4, 6, 10]
+    decisionSteps = [2, 4, 6, 10]
 
-    obstaclesCondition = [[(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)], [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)], [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)], [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]]
-    obstaclesMaps = dict(zip(minSteps, obstaclesCondition))
+    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
+    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
+    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
+    obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
+    obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
     rotatePoint = RotatePoint(gridSize)
 
@@ -103,12 +107,11 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
     priorBeta = 5
-    softmaxBeta = 2.5
-    rewardVarianceList = [50]
-    # for softmaxBeta in softmaxBetaList:
-    noiseList = [0]
-    for noise in noiseList:
-        for i in range(16):
+    softmaxBetaList = [1, 3, 5]
+    noiseList = [0.067]
+    for softmaxBeta in softmaxBetaList:
+        # for noise in noiseList:
+        for i in range(10):
             print(i)
             # expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
             # numExpTrial = len(expDesignValues)
@@ -124,17 +127,17 @@ def main():
 
             # random.shuffle(conditionList)
             # conditionList.append(expCondition)
-            numBlocks = 5
-            expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps] * numBlocks
+            numBlocks = 3
+            expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in decisionSteps] * numBlocks
             random.shuffle(expDesignValues)
             numExpTrial = len(expDesignValues)
 
             specialDesign = [5, 5, 4, 10]
             expDesignValues.append(specialDesign)
 
-            condition = namedtuple('condition', 'name minSteps')
-            expCondition = condition(name='expCondition', minSteps=minSteps[:-1])
-            specialCondition = condition(name='specialCondition', minSteps=[10])
+            condition = namedtuple('condition', 'name decisionSteps')
+            expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
+            specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
             conditionList = [expCondition] * numExpTrial
 
@@ -148,10 +151,12 @@ def main():
 
             if noise == 0:
                 noiseDesignValues = [0] * numNormalTrials
+
+            conditionList.append(specialCondition)
     # deubg
-           # expDesignValues = [specialDesign] * 10
-           # noiseDesignValues = ['special'] * 10
-           # conditionList = [expCondition] * 10
+    #         expDesignValues = [specialDesign] * 10
+    #         noiseDesignValues = ['special'] * 10
+    #         conditionList = [expCondition] * 10
     # debug
 
             creatMap = CreatMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
@@ -172,7 +177,7 @@ def main():
             # specialTrial = SpecialTrialWithGoal(controller, drawNewState, drawText, specialNoise, checkBoundary, initPrior, inferGoalPosterior)
 
             experimentValues = co.OrderedDict()
-            experimentValues["name"] = "specailnoise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
+            experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
             writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
             experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
