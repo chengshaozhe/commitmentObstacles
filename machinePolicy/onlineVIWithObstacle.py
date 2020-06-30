@@ -182,7 +182,7 @@ class RunVI:
     def __call__(self, sheep_states, obstacles_states):
         env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
 
-        goalRewardList = [100, 100]
+        goalRewardList = [10, 10]
         terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
 
         env.add_obstacles(list(obstacles_states))
@@ -239,7 +239,7 @@ if __name__ == '__main__':
     sheep_states = ((6, 11), (11, 6))
 
     # obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
-    obstacles_states = ((3, 3), (4, 1), (1, 4),  (5, 3), (3, 5), (6, 3), (3, 6))
+    obstacles_states = ((3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6))
     # obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
 
     Q_dict = runVI(sheep_states, obstacles_states)

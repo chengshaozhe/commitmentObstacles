@@ -103,10 +103,10 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
     priorBeta = 5
-    softmaxBeta = 2.5
+    softmaxBeta = 1
     rewardVarianceList = [50]
     # for softmaxBeta in softmaxBetaList:
-    noiseList = [0]
+    noiseList = [0.067]
     for noise in noiseList:
         for i in range(16):
             print(i)
@@ -124,7 +124,7 @@ def main():
 
             # random.shuffle(conditionList)
             # conditionList.append(expCondition)
-            numBlocks = 5
+            numBlocks = 3
             expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps] * numBlocks
             random.shuffle(expDesignValues)
             numExpTrial = len(expDesignValues)
@@ -149,9 +149,9 @@ def main():
             if noise == 0:
                 noiseDesignValues = [0] * numNormalTrials
     # deubg
-           # expDesignValues = [specialDesign] * 10
-           # noiseDesignValues = ['special'] * 10
-           # conditionList = [expCondition] * 10
+    #         expDesignValues = [specialDesign] * 10
+    #         noiseDesignValues = ['special'] * 10
+    #         conditionList = [expCondition] * 10
     # debug
 
             creatMap = CreatMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)

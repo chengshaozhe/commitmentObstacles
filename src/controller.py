@@ -252,10 +252,9 @@ class InferGoalPosterior:
     def __call__(self, playerGrid, action, target1, target2, priorList):
         targets = list([target1, target2])
 
-        goalPolicy = self.runVI(goal, obstacles) for goal in targets]
-#todo
+        goalPolicy = [self.runVI(goal, obstacles) for goal in targets]
+# todo
         likelihoodList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
-
 
         posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
 
