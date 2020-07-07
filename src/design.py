@@ -90,7 +90,7 @@ class CreatLineMap():
         self.isInBoundary = isInBoundary
 
     def __call__(self, width, height, distance, decisionSteps, targetDiffs):
-        targetDiff = random.choice([targetDiffs / 2, -targetDiffs / 2])
+        targetDiff = random.choice(targetDiffs, -targetDiffs)
         playerGrid = (random.randint(math.floor(self.dimension / 2) - 1, math.floor(self.dimension / 2) + 1), random.randint(1, 2))
         target1 = (playerGrid[0] - distance + targetDiff, playerGrid[1] + width + height - 1)
         target2 = (playerGrid[0] + distance, playerGrid[1] + width + height - 1)
