@@ -85,7 +85,7 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [-1, 3, 5, 7]
+    softmaxBetaList = [-1, 5, 7, 3]
     noiseList = [0.067]
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
@@ -109,7 +109,6 @@ def main():
 
             numControlTrial = int(numExpTrial / 2)
             conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
-            conditionList = [lineCondition] * numControlTrial + [specialCondition]
 
             random.shuffle(conditionList)
             numNormalTrials = len(conditionList)
@@ -139,7 +138,7 @@ def main():
             modelController = ModelControllerOnline(softmaxBeta, runVI)
             controller = modelController
 
-            renderOn = 1
+            renderOn = 0
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 
