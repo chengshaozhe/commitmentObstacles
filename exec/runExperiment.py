@@ -116,8 +116,8 @@ def main():
 # debug
 
     experimentValues = co.OrderedDict()
-    experimentValues["name"] = 'test'
-    # experimentValues["name"] = input("Please enter your name:").capitalize()
+    # experimentValues["name"] = 'test'
+    experimentValues["name"] = input("Please enter your name:").capitalize()
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
