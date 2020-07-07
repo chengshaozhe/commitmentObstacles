@@ -108,8 +108,7 @@ def main():
             specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
             numControlTrial = int(numExpTrial / 2)
-            conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
-
+            conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial
             random.shuffle(conditionList)
             numNormalTrials = len(conditionList)
 
@@ -123,6 +122,10 @@ def main():
                 noiseDesignValues = [0] * numNormalTrials
 
             conditionList.append(specialCondition)
+
+            if len(conditionList) != len(noiseDesignValues):
+                raise Exception("unmatch condition design")
+
     # deubg
     #         expDesignValues = [specialDesign] * 10
     #         noiseDesignValues = ['special'] * 10

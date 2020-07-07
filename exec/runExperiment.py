@@ -93,8 +93,11 @@ def main():
     specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
     numControlTrial = int(numExpTrial / 2)
-    conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
+    conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial
     # conditionList = [lineCondition] * numControlTrial
+
+    random.shuffle(conditionList)
+    conditionList.append(specialCondition)
 
     numNormalTrials = len(conditionList)
     numTrialsPerBlock = 3
@@ -106,8 +109,9 @@ def main():
     if noise == 0:
         noiseDesignValues = [0] * numNormalTrials
 
-    random.shuffle(conditionList)
-    conditionList.append(specialCondition)
+    if len(conditionList) != len(noiseDesignValues):
+        raise Exception("unmatch condition design")
+
 
 # deubg
 #         expDesignValues = [specialDesign] * 10
@@ -116,8 +120,8 @@ def main():
 # debug
 
     experimentValues = co.OrderedDict()
-    # experimentValues["name"] = 'test'
-    experimentValues["name"] = input("Please enter your name:").capitalize()
+    experimentValues["name"] = 'test'
+    # experimentValues["name"] = input("Please enter your name:").capitalize()
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
