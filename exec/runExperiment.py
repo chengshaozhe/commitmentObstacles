@@ -84,7 +84,7 @@ def main():
     random.shuffle(expDesignValues)
     numExpTrial = len(expDesignValues)
 
-    specialDesign = [5, 5, 4, 10]
+    specialDesign = [5, 5, 4, 10, 0]
     expDesignValues.append(specialDesign)
 
     condition = namedtuple('condition', 'name decisionSteps')
