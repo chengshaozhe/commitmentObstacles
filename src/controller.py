@@ -62,16 +62,43 @@ class AimActionWithNoise():
         return realPlayerGrid, realAction
 
 
-def calMidPoints(target1, target2, zone):
-    midpoints = list([(target1[0], target2[1]), (target2[0], target1[1])])
-    midPoint = list(set(zone).intersection(set(midpoints)))[0]
+# def calMidPoints(target1, target2, zone):
+#     midpoints = list([(target1[0], target2[1]), (target2[0], target1[1])])
+#     midPoint = list(set(zone).intersection(set(midpoints)))[0]
+#     return midPoint
+
+def creatRect(coor1, coor2):
+    vector = np.array(list(zip(coor1, coor2)))
+    vector.sort(axis=1)
+    rect = [(i, j) for i in range(vector[0][0], vector[0][1] + 1) for j in range(vector[1][0], vector[1][1] + 1)]
+    return rect
+
+
+def calculateAvoidCommitmnetZoneAll(playerGrid, target1, target2):
+    rect1 = creatRect(playerGrid, target1)
+    rect2 = creatRect(playerGrid, target2)
+    avoidCommitmentZone = list(set(rect1).intersection(set(rect2)))
+    avoidCommitmentZone.remove(tuple(playerGrid))
+    return avoidCommitmentZone
+
+
+def calMidPoints(initPlayerGrid, target1, target2):
+    zone = calculateAvoidCommitmnetZoneAll(initPlayerGrid, target1, target2)
+    if zone:
+        playerDisToZoneGrid = [calculateGridDis(initPlayerGrid, zoneGrid) for zoneGrid in zone]
+        midPointIndex = np.argmax(playerDisToZoneGrid)
+        midPoint = zone[midPointIndex]
+    else:
+        midPoint = []
     return midPoint
 
 
-def backToCrossPointNoise(trajectory, target1, target2, zone, noiseStep, firstIntentionFlag):
+def backToCrossPointNoise(trajectory, target1, target2, noiseStep, firstIntentionFlag):
     playerGrid = tuple(trajectory[-1])
-    midpoint = calMidPoints(target1, target2, zone)
+    initPlayerGrid = tuple(trajectory[0])
+    midpoint = calMidPoints(initPlayerGrid, target1, target2)
     realPlayerGrid = None
+    zone = calculateAvoidCommitmnetZoneAll(initPlayerGrid, target1, target2)
     if playerGrid not in zone and tuple(trajectory[-2]) in zone and not firstIntentionFlag:
         realPlayerGrid = midpoint
         noiseStep = len(trajectory)
@@ -79,9 +106,8 @@ def backToCrossPointNoise(trajectory, target1, target2, zone, noiseStep, firstIn
     return realPlayerGrid, noiseStep, firstIntentionFlag
 
 
-def backToZoneNoise(playerGrid, trajectory, zone, noiseStep, firstIntentionFlag):
+def backToZoneNoise(playerGrid, trajectory, noiseStep, firstIntentionFlag):
     realPlayerGrid = None
-
     if playerGrid not in zone and tuple(trajectory[-2]) in zone and not firstIntentionFlag:
         realPlayerGrid = trajectory[-3]
         noiseStep = len(trajectory)

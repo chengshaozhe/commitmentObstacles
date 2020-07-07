@@ -65,7 +65,7 @@ def main():
 # condition
     width = [5]
     height = [5]
-    intentionDis = [3, 4, 5, 6]
+    intentionDis = [3, 4, 5]
     rotateAngles = [0, 90, 180, 270]
     decisionSteps = [2, 4, 6, 10]
     targetDiffs = [0, 2, 4]
@@ -114,14 +114,14 @@ def main():
 
 
 # deubg
-#         expDesignValues = [specialDesign] * 10
-#         noiseDesignValues = ['special'] * 10
-#         conditionList = [expCondition] * 10
+    # expDesignValues = [specialDesign] * 10
+    # noiseDesignValues = ['special'] * 10
+    # conditionList = [specialCondition] * 10
 # debug
 
     experimentValues = co.OrderedDict()
-    experimentValues["name"] = 'test'
-    # experimentValues["name"] = input("Please enter your name:").capitalize()
+    # experimentValues["name"] = 'test'
+    experimentValues["name"] = input("Please enter your name:").capitalize()
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
@@ -155,7 +155,7 @@ def main():
 
     drawImage(testTrialImage)
     baseLineTrialCondition = [6, 8, 10, 12, 14]
-    numBaseLineTrialBlock = 4
+    numBaseLineTrialBlock = 5
     numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
     baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
     baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock

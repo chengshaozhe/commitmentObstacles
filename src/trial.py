@@ -153,11 +153,11 @@ class NormalTrial():
 
 
 class SpecialTrial():
-    def __init__(self, controller, drawNewState, drawText, backToZoneNoise, checkBoundary):
+    def __init__(self, controller, drawNewState, drawText, specialNoise, checkBoundary):
         self.controller = controller
         self.drawNewState = drawNewState
         self.drawText = drawText
-        self.backToZoneNoise = backToZoneNoise
+        self.specialNoise = specialNoise
         self.checkBoundary = checkBoundary
 
     def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles):
@@ -175,7 +175,6 @@ class SpecialTrial():
         self.drawNewState(bean1Grid, bean2Grid, initialPlayerGrid, obstacles)
         pg.event.set_allowed([pg.KEYDOWN, pg.KEYUP, pg.QUIT])
 
-        avoidCommitmentZone = (initialPlayerGrid, bean1Grid, bean2Grid)
         pause = True
         realPlayerGrid = initialPlayerGrid
         initialTime = time.get_ticks()
@@ -186,8 +185,8 @@ class SpecialTrial():
             goalList.append(goal)
             stepCount = stepCount + 1
 
-            if len(trajectory) > 1:
-                noisePlayerGrid, noiseStep, firstIntentionFlag = self.specialNoise(trajectory, bean1Grid, bean2Grid, avoidCommitmentZone, noiseStep, firstIntentionFlag)
+            if len(trajectory) > 2:
+                noisePlayerGrid, noiseStep, firstIntentionFlag = self.specialNoise(trajectory, bean1Grid, bean2Grid, noiseStep, firstIntentionFlag)
                 if noisePlayerGrid:
                     realPlayerGrid = self.checkBoundary(noisePlayerGrid)
                 else:
