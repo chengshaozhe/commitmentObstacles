@@ -90,7 +90,7 @@ def main():
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
-        for i in range(10):
+        for i in range(1, 10):
             print(i)
 
             numBlocks = 5
@@ -99,7 +99,7 @@ def main():
             random.shuffle(expDesignValues)
             numExpTrial = len(expDesignValues)
 
-            specialDesign = [5, 5, 4, 10]
+            specialDesign = [5, 5, 4, 10, 0]
             expDesignValues.append(specialDesign)
 
             condition = namedtuple('condition', 'name decisionSteps')

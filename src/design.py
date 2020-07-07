@@ -132,7 +132,7 @@ class SamplePositionFromCondition:
 
     def __call__(self, condition):
         width, height, distance, decisionSteps, targetDiff = self.expDesignValues[self.index]
-        if condition.name == 'expCondition':
+        if condition.name == 'expCondition' or condition.name == 'specialCondition':
             playerGrid, target1, target2, obstacles = self.creatRectMap(width, height, distance, decisionSteps, targetDiff)
         if condition.name == 'lineCondition':
             playerGrid, target1, target2, obstacles = self.creatLineMap(width, height, distance, decisionSteps, targetDiff)
