@@ -57,19 +57,21 @@ def createExpDesignValue(width, height, distance):
     return expDesignValues
 
 
-class CreatMap():
+class CreatRectMap():
     def __init__(self, rotateAngles, dimension, obstaclesMaps, rotatePoint):
         self.rotateAngles = rotateAngles
         self.dimension = dimension
         self.obstaclesMaps = obstaclesMaps
         self.rotatePoint = rotatePoint
 
-    def __call__(self, width, height, distance, minSteps):
-        playerGrid = (random.randint(1, self.dimension - distance - width - 2), random.randint(1, self.dimension - distance - height - 2))
-        target1 = (playerGrid[0] + width + distance, playerGrid[1] + height)
-        target2 = (playerGrid[0] + width, playerGrid[1] + height + distance)
+    def __call__(self, width, height, distance, decisionSteps, targetDiffs):
+        targetDiff = targetDiffs / 2
+        playerGrid = (random.randint(1, max(1, self.dimension - distance - width - targetDiff - 2)), random.randint(1, max(1, self.dimension - distance - height - targetDiff - 2)))
 
-        obstaclesBase = self.obstaclesMaps[minSteps]
+        target1 = (playerGrid[0] + width + distance, playerGrid[1] + height)
+        target2 = (playerGrid[0] + width + targetDiff, playerGrid[1] + height + distance + targetDiff)
+
+        obstaclesBase = self.obstaclesMaps[decisionSteps]
         transformBase = (playerGrid[0] - 1, playerGrid[1] - 1)
         obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
 
@@ -80,18 +82,67 @@ class CreatMap():
         return playerGrid, target1, target2, obstacles
 
 
+class CreatLineMap():
+    def __init__(self, rotateAngles, dimension, rotatePoint, isInBoundary):
+        self.rotateAngles = rotateAngles
+        self.dimension = dimension
+        self.rotatePoint = rotatePoint
+        self.isInBoundary = isInBoundary
+
+    def __call__(self, width, height, distance, decisionSteps, targetDiffs):
+        targetDiff = random.choice([targetDiffs / 2, -targetDiffs / 2])
+        playerGrid = (random.randint(math.floor(self.dimension / 2) - 1, math.floor(self.dimension / 2) + 1), random.randint(1, 2))
+        target1 = (playerGrid[0] - distance + targetDiff, playerGrid[1] + width + height - 1)
+        target2 = (playerGrid[0] + distance, playerGrid[1] + width + height - 1)
+
+        while not self.isInBoundary(target1) or not self.isInBoundary(target1):
+            playerGrid = (random.randint(math.floor(self.dimension / 2) - 1, math.floor(self.dimension / 2) + 1), random.randint(1, 2))
+            target1 = (playerGrid[0] - distance + targetDiff, playerGrid[1] + width + height - 1)
+            target2 = (playerGrid[0] + distance, playerGrid[1] + width + height - 1)
+
+        obstacles = [(playerGrid[0] - 1, playerGrid[1]), (playerGrid[0] + 1, playerGrid[1])]
+        for i in range(width + height - 1):
+            obstacles.append((obstacles[0][0], obstacles[0][1] + i))
+            obstacles.append((obstacles[1][0], obstacles[1][1] + i))
+
+        if decisionSteps < 10:
+            obstaclesAtdecisionSteps = [(playerGrid[0] - 1, playerGrid[1] + decisionSteps), (playerGrid[0] + 1, playerGrid[1] + decisionSteps)]
+            [obstacles.remove(obstaclesAtdecisionStep) for obstaclesAtdecisionStep in obstaclesAtdecisionSteps]
+
+        angle = random.choice(self.rotateAngles)
+        playerGrid, target1, target2 = [self.rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
+        obstacles = [self.rotatePoint(point, angle) for point in obstacles]
+
+        return playerGrid, target1, target2, obstacles
+
+
+class CreatSingleGoalMap:
+    def __init__(self, dimension):
+        self.dimension = dimension
+
+    def __call__(self, distance):
+        playerGrid = (random.randint(1, max(1, self.dimension - 2)), random.randint(1, max(1, self.dimension - 2)))
+        allGrids = tuple(it.product(range(1, self.dimension - 2), range(1, self.dimension - 2)))
+        possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) == distance, allGrids))
+        targetGrid = random.choice(possibleGrids)
+        return playerGrid, targetGrid
+
+
 class SamplePositionFromCondition:
-    def __init__(self, creatMap, expDesignValues):
-        self.creatMap = creatMap
+    def __init__(self, creatRectMap, creatLineMap, expDesignValues):
+        self.creatRectMap = creatRectMap
+        self.creatLineMap = creatLineMap
         self.expDesignValues = expDesignValues
         self.index = 0
 
     def __call__(self, condition):
-        width, height, distance, minSteps = self.expDesignValues[self.index]
-        playerGrid, target1, target2, obstacles = self.creatMap(width, height, distance, minSteps)
-        minSteps = self.expDesignValues[self.index][3]
+        width, height, distance, decisionSteps, targetDiff = self.expDesignValues[self.index]
+        if condition.name == 'expCondition':
+            playerGrid, target1, target2, obstacles = self.creatRectMap(width, height, distance, decisionSteps, targetDiff)
+        if condition.name == 'lineCondition':
+            playerGrid, target1, target2, obstacles = self.creatLineMap(width, height, distance, decisionSteps, targetDiff)
         self.index += 1
-        return playerGrid, target1, target2, obstacles, minSteps
+        return playerGrid, target1, target2, obstacles, decisionSteps, targetDiff
 
 
 class RotatePoint:
@@ -109,18 +160,6 @@ class RotatePoint:
         y = (x1 - x2) * int(math.sin(radian)) + (y1 - y2) * int(math.cos(radian)) + y2
         y = self.dimension - y
         return (int(x), int(y))
-
-
-# def rotatePoint(point, center, dimension, angle):
-#     x1, y1 = point
-#     x2, y2 = center
-#     y1 = dimension - y1
-#     y2 = dimension - y2
-#     radian = math.radians(angle)
-#     x = (x1 - x2) * math.cos(radian) - (y1 - y2) * int(math.sin(radian)) + x2
-#     y = (x1 - x2) * int(math.sin(radian)) + (y1 - y2) * math.cos(radian) + y2
-#     y = dimension - y
-#     return (int(x), int(y))
 
 
 if __name__ == '__main__':
@@ -148,22 +187,30 @@ if __name__ == '__main__':
     width = [5]
     height = [5]
     intentionDis = [3, 4, 5, 6]
+    decisionSteps = [2, 4, 6]
+    targetDiffs = [0, 2, 4]
     rotateAngles = [0, 90, 180, 270]
-    minSteps = [2, 4, 6]
-    expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in minSteps]
 
-    obstaclesCondition = [[(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)], [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)], [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]]
-    obstaclesMaps = dict(zip(minSteps, obstaclesCondition))
+    expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs]
+
+    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
+    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
+    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+
+    # obstaclesMap4 =
+    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
+    obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
+    obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
     rotatePoint = RotatePoint(dimension)
-    creatMap = CreatMap(rotateAngles, dimension, obstaclesMaps, rotatePoint)
-    samplePositionFromCondition = SamplePositionFromCondition(creatMap, expDesignValues)
+    creatRectMap = CreatRectMap(rotateAngles, dimension, obstaclesMaps, rotatePoint)
+    samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, expDesignValues)
 
 
 # sample
     condition = 'exp'
-    for _ in range(10):
-        playerGrid, target1, target2, obstacles, minSteps = samplePositionFromCondition(condition)
+    for _ in range(30):
+        playerGrid, target1, target2, obstacles, decisionSteps = samplePositionFromCondition(condition)
         # obstacles = creatObstacles(pointList)
 
         # playerGrid = (1, 1)
@@ -171,9 +218,9 @@ if __name__ == '__main__':
         # obstacles = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
         # obstacles = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
 
-        # angle = random.choice(rotateAngles)
-        # playerGrid, target1, target2 = [rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
-        # obstacles = [rotatePoint(point, angle) for point in obstacles]
+        angle = random.choice(rotateAngles)
+        playerGrid, target1, target2 = [rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
+        obstacles = [rotatePoint(point, angle) for point in obstacles]
 
         pause = True
         while pause:

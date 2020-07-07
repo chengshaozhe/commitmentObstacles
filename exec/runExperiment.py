@@ -12,10 +12,12 @@ import pandas as pd
 
 from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
-from src.controller import HumanController, ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, SampleToZoneNoise
-from src.trial import NormalTrial, SpecialTrial
-from src.experiment import Experiment
-from src.design import CreatExpCondition, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue
+from src.controller import HumanController, ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
+from src.trial import NormalTrial, SpecialTrial, SingleGoalTrial
+from src.experiment import ObstacleExperiment, SingleGoalExperiment
+from src.design import CreatRectMap, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
+from src.design import *
+from src.controller import *
 
 
 def main():
@@ -27,47 +29,6 @@ def main():
     dataPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'conditionData'))
     df = pd.read_csv(os.path.join(dataPath, 'DesignConditionForAvoidCommitmentZone.csv'))
     df['intentionedDisToTargetMin'] = df.apply(lambda x: x['minDis'] - x['avoidCommitmentZone'], axis=1)
-
-    width = [3, 4, 5]
-    height = [3, 4, 5]
-    intentionDis = [2, 4, 6]
-    direction = [45, 135, 225, 315]
-
-    expDesignValues = createExpDesignValue(width, height, intentionDis)
-    createExpCondition = CreatExpCondition(direction, gridSize)
-    samplePositionFromCondition = SamplePositionFromCondition(df, createExpCondition, expDesignValues)
-
-    distanceDiffList = [0, 2, 4]
-    minDisList = range(5, 16)
-    intentionedDisToTargetList = [2, 4, 6]
-    rectAreaSize = [6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 36]
-    lineAreaSize = [4, 5, 6, 7, 8, 9, 10]
-    condition = namedtuple('condition', 'name areaType distanceDiff minDis areaSize intentionedDisToTarget')
-
-    expCondition = condition(name='expCondition', areaType='rect', distanceDiff=[0], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    rectCondition = condition(name='controlRect', areaType='rect', distanceDiff=[2, 4], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    straightLineCondition = condition(name='straightLine', areaType='straightLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    midLineCondition = condition(name='MidLine', areaType='midLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    noAreaCondition = condition(name='noArea', areaType='none', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=[0], intentionedDisToTarget=intentionedDisToTargetList)
-
-    numExpTrial = len(expDesignValues) - 1
-    numControlTrial = int(numExpTrial * 2 / 3)
-    expTrials = [expCondition] * numExpTrial
-    conditionList = list(expTrials + [rectCondition] * numExpTrial + [straightLineCondition] * numControlTrial + [midLineCondition] * numControlTrial + [noAreaCondition] * numControlTrial)
-    numNormalTrials = len(conditionList)
-    random.shuffle(conditionList)
-    conditionList.append(expCondition)
-
-    numTrialsPerBlock = 3
-    noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock))
-    noiseCondition.append((1, 1, 1))
-    blockNumber = int(numNormalTrials / numTrialsPerBlock)
-    noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
-
-# debug exp trail
-    conditionList = [expCondition] * len(conditionList)
-    noiseDesignValues = ['special'] * len(noiseDesignValues)
-    print(len(noiseDesignValues))
 
     screenWidth = 600
     screenHeight = 600
@@ -87,14 +48,72 @@ def main():
     playerRadius = 10
     textColorTuple = (255, 50, 50)
 
-    introductionImage = pg.image.load(os.path.join(picturePath, 'introduction.png'))
+    testTrialImage = pg.image.load(os.path.join(picturePath, 'testTrial.png'))
+    formalTrialImage = pg.image.load(os.path.join(picturePath, 'formalTrial.png'))
     finishImage = pg.image.load(os.path.join(picturePath, 'finish.png'))
-    introductionImage = pg.transform.scale(introductionImage, (screenWidth, screenHeight))
+    restImage = pg.image.load(os.path.join(picturePath, 'rest.png'))
+
+    testTrialImage = pg.transform.scale(testTrialImage, (screenWidth, screenHeight))
+    formalTrialImage = pg.transform.scale(formalTrialImage, (screenWidth, screenHeight))
+    restImage = pg.transform.scale(restImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
     finishImage = pg.transform.scale(finishImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
     drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
     drawText = DrawText(screen, drawBackground)
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
+
+# condition
+    width = [5]
+    height = [5]
+    intentionDis = [3, 4, 5, 6]
+    rotateAngles = [0, 90, 180, 270]
+    decisionSteps = [2, 4, 6, 10]
+    targetDiffs = [0, 2, 4]
+
+    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
+    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
+    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+
+    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
+    obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
+    obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
+
+    numBlocks = 5
+    expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
+
+    random.shuffle(expDesignValues)
+    numExpTrial = len(expDesignValues)
+
+    specialDesign = [5, 5, 4, 10]
+    expDesignValues.append(specialDesign)
+
+    condition = namedtuple('condition', 'name decisionSteps')
+    expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
+    lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
+    specialCondition = condition(name='specialCondition', decisionSteps=[10])
+
+    numControlTrial = int(numExpTrial / 2)
+    conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
+    # conditionList = [lineCondition] * numControlTrial
+
+    numNormalTrials = len(conditionList)
+    numTrialsPerBlock = 3
+    noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
+    blockNumber = int(numNormalTrials / numTrialsPerBlock)
+    noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
+
+    noise = 0.067
+    if noise == 0:
+        noiseDesignValues = [0] * numNormalTrials
+
+    random.shuffle(conditionList)
+    conditionList.append(specialCondition)
+
+# deubg
+#         expDesignValues = [specialDesign] * 10
+#         noiseDesignValues = ['special'] * 10
+#         conditionList = [expCondition] * 10
+# debug
 
     experimentValues = co.OrderedDict()
     experimentValues["name"] = 'test'
@@ -103,19 +122,44 @@ def main():
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
 
+    baseLineWriterPath = os.path.join(resultsPath, 'baseLine' + experimentValues["name"] + '.csv')
+    baseLineWriter = WriteDataFrameToCSV(baseLineWriterPath)
+
+    rotatePoint = RotatePoint(gridSize)
+    isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
+    creatRectMap = CreatRectMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
+    creatLineMap = CreatLineMap(rotateAngles, gridSize, rotatePoint, isInBoundary)
+    samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
+
     pygameActionDict = {pg.K_UP: (0, -1), pg.K_DOWN: (0, 1), pg.K_LEFT: (-1, 0), pg.K_RIGHT: (1, 0)}
     humanController = HumanController(pygameActionDict)
     controller = humanController
 
     checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
-    noiseActionSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-    normalNoise = NormalNoise(noiseActionSpace, gridSize)
-    sampleToZoneNoise = SampleToZoneNoise(noiseActionSpace)
-    normalTrial = NormalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
-    specialTrial = SpecialTrial(controller, drawNewState, drawText, sampleToZoneNoise, checkBoundary)
-    experiment = Experiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
+    specialNoise = backToCrossPointNoise
 
-    drawImage(introductionImage)
+    normalTrial = NormalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
+    specialTrial = SpecialTrial(controller, drawNewState, drawText, specialNoise, checkBoundary)
+
+    experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
+
+    singleGoalTrial = SingleGoalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
+    creatSingleGoalMap = CreatSingleGoalMap(gridSize)
+    singleGoalExperiment = SingleGoalExperiment(singleGoalTrial, baseLineWriter, experimentValues, creatSingleGoalMap)
+
+    drawImage(testTrialImage)
+    baseLineTrialCondition = [6, 8, 10, 12, 14]
+    numBaseLineTrialBlock = 4
+    numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
+    baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
+    baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock
+    random.shuffle(baseLineConditionList)
+
+    singleGoalExperiment(baseLineNoiseDesignValues, baseLineConditionList)
+    drawImage(restImage)
+    drawImage(formalTrialImage)
     experiment(noiseDesignValues, conditionList)
     drawImage(finishImage)
 

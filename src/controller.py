@@ -158,6 +158,18 @@ class AwayFromTheGoalNoise():
         return realPlayerGrid, firstIntentionFlag, noiseStep
 
 
+class IsInBoundary():
+    def __init__(self, xBoundary, yBoundary):
+        self.xMin, self.xMax = xBoundary
+        self.yMin, self.yMax = yBoundary
+
+    def __call__(self, position):
+        if position[0] > self.xMax or position[0] < self.xMin or position[1] > self.yMax or position[1] < self.yMin:
+            return False
+        else:
+            return True
+
+
 class CheckBoundary():
     def __init__(self, xBoundary, yBoundary):
         self.xMin, self.xMax = xBoundary

@@ -66,6 +66,7 @@ def main():
     obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
     obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
     obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+
     speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
     obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
     obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
@@ -109,6 +110,7 @@ def main():
     priorBeta = 5
     softmaxBetaList = [1, 3, 5]
     noiseList = [0.067]
+    noise = 0.067
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
         for i in range(10):
@@ -127,6 +129,7 @@ def main():
 
             # random.shuffle(conditionList)
             # conditionList.append(expCondition)
+
             numBlocks = 3
             expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in decisionSteps] * numBlocks
             random.shuffle(expDesignValues)
