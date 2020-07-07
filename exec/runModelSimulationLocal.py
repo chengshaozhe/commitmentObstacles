@@ -18,6 +18,8 @@ from src.simulationTrial import NormalTrial, SpecialTrial
 from src.experiment import ObstacleExperiment
 from src.design import CreatMap, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
 from machinePolicy.onlineVIWithObstacle import RunVI
+from src.design import *
+from src.controller import *
 
 
 def main():
@@ -57,11 +59,13 @@ def main():
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
 
+# condition
     width = [5]
     height = [5]
     intentionDis = [3, 4, 5, 6]
     rotateAngles = [0, 90, 180, 270]
     decisionSteps = [2, 4, 6, 10]
+    targetDiffs = [0, 2, 4]
 
     obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
     obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
@@ -73,65 +77,25 @@ def main():
 
     rotatePoint = RotatePoint(gridSize)
 
-    # createExpCondition = CreatMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
-    # samplePositionFromCondition = SamplePositionFromCondition(createExpCondition, expDesignValues)
-
-    # distanceDiffList = [0, 2, 4]
-    # minDisList = range(5, 15)
-    # intentionedDisToTargetList = [4, 6]
-    # rectAreaSize = [36]
-    # lineAreaSize = [4, 5, 6, 7, 8, 9, 10]
-
-    # condition = namedtuple('condition', 'name areaType distanceDiff minDis areaSize intentionedDisToTarget')
-
-    # expCondition = condition(name='expCondition', areaType='rect', distanceDiff=[0], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    # rectCondition = condition(name='controlRect', areaType='rect', distanceDiff=[2, 4], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    # straightLineCondition = condition(name='straightLine', areaType='straightLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    # midLineCondition = condition(name='MidLine', areaType='midLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-    # noAreaCondition = condition(name='noArea', areaType='none', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=[0], intentionedDisToTarget=intentionedDisToTargetList)
-
-    # policy = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGird15_policy.pkl"), "rb"))
-
     checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
-    # noiseActionSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-    # normalNoise = NormalNoise(noiseActionSpace, gridSize)
-    # specialNoise = SampleToZoneNoise(noiseActionSpace)
-
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
     specialNoise = backToCrossPointNoise
 
-    softmaxBetaList = [2.5]
-
-    # goalPolicy = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGoalGird15_policy.pkl"), "rb"))
-
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
-    priorBeta = 5
-    softmaxBetaList = [1, 3, 5]
+
+    softmaxBetaList = [3, 5, 7]
     noiseList = [0.067]
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
         for i in range(10):
             print(i)
-            # expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
-            # numExpTrial = len(expDesignValues)
-            # random.shuffle(expDesignValues)
-            # expDesignValues.append(random.choice(expDesignValues))
-            # createExpCondition = CreatMap(direction, gridSize)
-            # samplePositionFromCondition = SamplePositionFromCondition(df, createExpCondition, expDesignValues)
-            # numExpTrial = len(expDesignValues) - 1
-            # numControlTrial = int(numExpTrial * 2 / 3)
-            # expTrials = [expCondition] * numExpTrial
-            # conditionList = list(expTrials + [rectCondition] * numExpTrial + [straightLineCondition] * numControlTrial + [midLineCondition] * numControlTrial + [noAreaCondition] * numControlTrial)
-            # numNormalTrials = len(conditionList)
 
-            # random.shuffle(conditionList)
-            # conditionList.append(expCondition)
+            numBlocks = 5
+            expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
 
-            numBlocks = 3
-            expDesignValues = [[b, h, d, m] for b in width for h in height for d in intentionDis for m in decisionSteps] * numBlocks
             random.shuffle(expDesignValues)
             numExpTrial = len(expDesignValues)
 
@@ -140,9 +104,11 @@ def main():
 
             condition = namedtuple('condition', 'name decisionSteps')
             expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
+            lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
             specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
-            conditionList = [expCondition] * numExpTrial
+            numControlTrial = int(numExpTrial / 2)
+            conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
 
             numNormalTrials = len(conditionList)
 
@@ -162,11 +128,10 @@ def main():
     #         conditionList = [expCondition] * 10
     # debug
 
-            creatMap = CreatMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
-            samplePositionFromCondition = SamplePositionFromCondition(creatMap, expDesignValues)
-
-            # modelController = ModelController(policy, gridSize, softmaxBeta)
-            # modelControllerWithGoal = ModelControllerWithGoal(gridSize, softmaxBeta, goalPolicy, priorBeta)
+            isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
+            creatRectMap = CreatRectMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
+            creatLineMap = CreatLineMap(rotateAngles, gridSize, rotatePoint, isInBoundary)
+            samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
 
             runVI = RunVI(gridSize, noise, noiseActionSpace)
             modelController = ModelControllerOnline(softmaxBeta, runVI)
@@ -175,9 +140,6 @@ def main():
             renderOn = False
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
-
-            # normalTrial = NormalTrialWithGoal(controller, drawNewState, drawText, normalNoise, checkBoundary, initPrior, inferGoalPosterior)
-            # specialTrial = SpecialTrialWithGoal(controller, drawNewState, drawText, specialNoise, checkBoundary, initPrior, inferGoalPosterior)
 
             experimentValues = co.OrderedDict()
             experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
