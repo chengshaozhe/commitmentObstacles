@@ -68,7 +68,7 @@ class SingleGoalTrial():
         obstacles = []
         initialPlayerGrid = playerGrid
         reactionTime = list()
-        trajectory = list(initialPlayerGrid)
+        trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
         totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(beanGrid), ord=1))
@@ -113,7 +113,7 @@ class NormalTrial():
     def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, designValues):
         initialPlayerGrid = playerGrid
         reactionTime = list()
-        trajectory = list(initialPlayerGrid)
+        trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
         totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(bean1Grid), ord=1))
@@ -163,7 +163,7 @@ class SpecialTrial():
     def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles):
         initialPlayerGrid = playerGrid
         reactionTime = list()
-        trajectory = list(initialPlayerGrid)
+        trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
         firstIntentionFlag = False

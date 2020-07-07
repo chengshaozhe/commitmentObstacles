@@ -29,7 +29,6 @@ class ObstacleExperiment():
     def __call__(self, noiseDesignValues, conditionList):
         for trialIndex, condition in enumerate(conditionList):
             playerGrid, target1, target2, obstacles, decisionSteps, targetDiff = self.samplePositionFromCondition(condition)
-
             if isinstance(noiseDesignValues[trialIndex], int):
                 results = self.normalTrial(target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex])
             else:

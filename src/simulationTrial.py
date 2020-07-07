@@ -73,7 +73,7 @@ class NormalTrial():
         results = co.OrderedDict()
         aimActionList = list()
         totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(bean1Grid), ord=1))
-        noiseStep = sorted(random.sample(list(range(1, totalStep)), designValues))
+        noiseStep = sorted(random.sample(list(range(2, totalStep)), designValues))
         stepCount = 0
         goalList = list()
 
@@ -115,7 +115,7 @@ class SpecialTrial():
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
-        trajectory = [initialPlayerGrid]
+        trajectory = initialPlayerGrid
         results = co.OrderedDict()
         aimActionList = list()
         firstIntentionFlag = False

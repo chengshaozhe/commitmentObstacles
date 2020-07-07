@@ -16,7 +16,7 @@ from src.visualization import InitializeScreen, DrawBackground, DrawNewState, Dr
 from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
 from src.simulationTrial import NormalTrial, SpecialTrial
 from src.experiment import ObstacleExperiment
-from src.design import CreatMap, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
+from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
 from machinePolicy.onlineVIWithObstacle import RunVI
 from src.design import *
 from src.controller import *
@@ -63,10 +63,10 @@ def main():
     width = [5]
     height = [5]
     intentionDis = [3, 4, 5, 6]
-    rotateAngles = [0, 90, 180, 270]
     decisionSteps = [2, 4, 6, 10]
     targetDiffs = [0, 2, 4]
 
+    rotateAngles = [0, 90, 180, 270]
     obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
     obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
     obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
@@ -85,7 +85,7 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [3, 5, 7]
+    softmaxBetaList = [-1, 3, 5, 7]
     noiseList = [0.067]
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
@@ -109,7 +109,9 @@ def main():
 
             numControlTrial = int(numExpTrial / 2)
             conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial + [specialCondition]
+            conditionList = [lineCondition] * numControlTrial + [specialCondition]
 
+            random.shuffle(conditionList)
             numNormalTrials = len(conditionList)
 
             numTrialsPerBlock = 3
@@ -137,7 +139,7 @@ def main():
             modelController = ModelControllerOnline(softmaxBeta, runVI)
             controller = modelController
 
-            renderOn = False
+            renderOn = 1
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 

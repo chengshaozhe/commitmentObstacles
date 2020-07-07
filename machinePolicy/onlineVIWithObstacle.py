@@ -216,14 +216,14 @@ class RunVI:
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        mapValue = 'V'
-        heatMapValue = eval(mapValue)
-        y = dict_to_array(heatMapValue)
-        y = y.reshape((self.gridSize, self.gridSize))
-        df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-        sns.heatmap(df, annot=True, fmt='.3f')
-        plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
-        plt.show()
+        # mapValue = 'V'
+        # heatMapValue = eval(mapValue)
+        # y = dict_to_array(heatMapValue)
+        # y = y.reshape((self.gridSize, self.gridSize))
+        # df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+        # sns.heatmap(df, annot=True, fmt='.3f')
+        # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+        # plt.show()
 
         return Q_dict
 
