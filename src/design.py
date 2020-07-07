@@ -92,13 +92,8 @@ class CreatLineMap():
     def __call__(self, width, height, distance, decisionSteps, targetDiffs):
         targetDiff = random.choice([targetDiffs / 2, -targetDiffs / 2])
         playerGrid = (random.randint(math.floor(self.dimension / 2) - 1, math.floor(self.dimension / 2) + 1), random.randint(1, 2))
-        target1 = (playerGrid[0] - distance - targetDiff - 1, playerGrid[1] + width + height - 1)
-        target2 = (playerGrid[0] + distance - targetDiff + 1, playerGrid[1] + width + height - 1)
-
-        while not self.isInBoundary(target1) or not self.isInBoundary(target2):
-            playerGrid = (random.randint(math.floor(self.dimension / 2) - 1, math.floor(self.dimension / 2) + 1), random.randint(1, 2))
-            target1 = (playerGrid[0] - distance - targetDiff - 1, playerGrid[1] + width + height - 1)
-            target2 = (playerGrid[0] + distance - targetDiff + 1, playerGrid[1] + width + height - 1)
+        target1 = (playerGrid[0] - distance - targetDiff, playerGrid[1] + width + height - 1)
+        target2 = (playerGrid[0] + distance - targetDiff, playerGrid[1] + width + height - 1)
 
         obstacles = [(playerGrid[0] - 1, playerGrid[1]), (playerGrid[0] + 1, playerGrid[1])]
         for i in range(width + height - 1):

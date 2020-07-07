@@ -62,7 +62,7 @@ def main():
 # condition
     width = [5]
     height = [5]
-    intentionDis = [3, 4, 5, 6]
+    intentionDis = [3, 4, 5]
     decisionSteps = [2, 4, 6, 10]
     targetDiffs = [0, 2, 4]
 
@@ -85,7 +85,7 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [-1, 5, 7, 3]
+    softmaxBetaList = [5, 7, 3]
     noiseList = [0.067]
     noise = 0.067
     for softmaxBeta in softmaxBetaList:

@@ -33,7 +33,7 @@ class ObstacleExperiment():
                 results = self.normalTrial(target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex])
             else:
                 results = self.specialTrial(target1, target2, playerGrid, obstacles)
-
+            print('trialIndex:', trialIndex)
             results["conditionName"] = condition.name
             results["noiseNumber"] = noiseDesignValues[trialIndex]
             results["playerGrid"] = str(playerGrid)
