@@ -90,7 +90,7 @@ def main():
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
-        for i in range(1, 10):
+        for i in range(4, 10):
             print(i)
 
             numBlocks = 5

@@ -115,7 +115,7 @@ class SpecialTrial():
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
-        trajectory = initialPlayerGrid
+        trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
         firstIntentionFlag = False
