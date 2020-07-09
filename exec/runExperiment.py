@@ -112,7 +112,6 @@ def main():
     if len(conditionList) != len(noiseDesignValues):
         raise Exception("unmatch condition design")
 
-
 # deubg
     # expDesignValues = [specialDesign] * 10
     # noiseDesignValues = ['special'] * 10
@@ -120,8 +119,8 @@ def main():
 # debug
 
     experimentValues = co.OrderedDict()
-    # experimentValues["name"] = 'test'
-    experimentValues["name"] = input("Please enter your name:").capitalize()
+    # experimentValues["name"] = input("Please enter your name:").capitalize()
+    experimentValues["name"] = 'test'
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)

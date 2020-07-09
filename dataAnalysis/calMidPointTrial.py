@@ -12,8 +12,8 @@ from sklearn.metrics import mutual_info_score as KL
 from dataAnalysis import calculateSE, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone
 
 
-def calAvoidPoints(playerGrid, minSteps):
-    addSteps = minSteps / 2 + 1
+def calAvoidPoints(playerGrid, decisionSteps):
+    addSteps = decisionSteps / 2 + 1
     x, y = playerGrid
     if x < 7 and y < 7:
         avoidPoint = (x + addSteps, y + addSteps)
@@ -26,9 +26,9 @@ def calAvoidPoints(playerGrid, minSteps):
     return avoidPoint
 
 
-def isTrajHasAvoidPoints(trajectory, playerGrid, minSteps):
+def isTrajHasAvoidPoints(trajectory, playerGrid, decisionSteps):
     trajectory = list(map(tuple, trajectory))
-    avoidPoint = calAvoidPoints(playerGrid, minSteps)
+    avoidPoint = calAvoidPoints(playerGrid, decisionSteps)
     hasMidPoint = 1 if avoidPoint in trajectory else 0
     return hasMidPoint
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['noise0.067_softmaxBeta5']
+    participants = ['human', 'noise0.067_softmaxBeta']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -55,9 +55,12 @@ if __name__ == '__main__':
         # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
         # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
 
-        df = df[(df['minSteps'] == 2)]
+        df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+
+        # df = df[(df['decisionSteps'] == 2) & (df['conditionName'] == 'expCondition')]
+
         # print(len(df))
-        df['hasAvoidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['minSteps']), axis=1)
+        df['hasAvoidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['decisionSteps']), axis=1)
 
         # dfExpTrail = df[(df['areaType'] == 'rect')]
 
@@ -85,8 +88,8 @@ if __name__ == '__main__':
 
         statDF['avoidCommitPoint'] = df.groupby('name')["hasAvoidPoint"].sum() / (len(df) / len(df.groupby('name')["hasAvoidPoint"]))
 
-        # statDF['midTriaPercent'] = df.groupby(['name','minSteps'])["hasAvoidPoint"].sum() / (len(df) / len(df.groupby(['name','minSteps'])["hasAvoidPoint"]))
-        # stats = list(statDF.groupby('minSteps')['midTriaPercent'].mean())[:-1]
+        # statDF['midTriaPercent'] = df.groupby(['name','decisionSteps'])["hasAvoidPoint"].sum() / (len(df) / len(df.groupby(['name','decisionSteps'])["hasAvoidPoint"]))
+        # stats = list(statDF.groupby('decisionSteps')['midTriaPercent'].mean())[:-1]
         # statsList.append(stats)
         # print(statDF)
 

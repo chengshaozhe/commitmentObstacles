@@ -15,13 +15,16 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['human', 'softmaxBeta0.5', 'rewardVariance5','rewardVariance10', 'rewardVariance30' ,'rewardVariance50']
+    participants = ['noise0.067_softmaxBeta']
+
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
 
         df['firstIntentionStep'] = df.apply(lambda x: calculateFirstIntentionStep(eval(x['goal'])), axis=1)
         df['totalStep'] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
+
+        df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
         # df.to_csv("all.csv")
         nubOfSubj = len(df["name"].unique())
@@ -41,8 +44,8 @@ if __name__ == '__main__':
         dfExpTrail = df
 
         statDF = pd.DataFrame()
-        # statDF['firstIntentionStep'] = dfExpTrail.groupby('name')["firstIntentionStep"].mean()
-        statDF['totalStep'] = dfExpTrail.groupby('name')["totalStep"].mean()
+        statDF['firstIntentionStep'] = dfExpTrail.groupby('name')["firstIntentionStep"].mean()
+        # statDF['totalStep'] = dfExpTrail.groupby('name')["totalStep"].mean()
 
         # print('firstIntentionStep', np.mean(statDF['firstIntentionStep']))
         print('')
@@ -51,7 +54,7 @@ if __name__ == '__main__':
         statsList.append([np.mean(statDF[stat]) for stat in stats])
         stdList.append([calculateSE(statDF[stat]) for stat in stats])
 
-    xlabels = ['totalStep']
+    xlabels = ['firstIntentionStep']
     labels = participants
     x = np.arange(len(xlabels))
     totalWidth, n = 0.1, len(participants)

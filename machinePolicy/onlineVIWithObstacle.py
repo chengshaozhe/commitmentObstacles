@@ -238,6 +238,7 @@ if __name__ == '__main__':
     runVI = RunVI(gridSize, noise, noiseSpace)
 
     sheep_states = ((6, 11), (11, 6))
+    # sheep_states = ((6, 11),)
     # obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
     # obstacles_states = ((3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6))
     obstacles_states = ((4, 4), (4, 1), (5, 2), (6, 4), (4, 6), (1, 4), (2, 5), (6, 2), (2, 6))
