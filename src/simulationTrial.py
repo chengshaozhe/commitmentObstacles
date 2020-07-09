@@ -133,7 +133,7 @@ class SpecialTrial():
             goalList.append(goal)
             stepCount = stepCount + 1
 
-            if len(trajectory) > 1:
+            if len(trajectory) > 3:
                 noisePlayerGrid, noiseStep, firstIntentionFlag = self.specialNoise(trajectory, bean1Grid, bean2Grid, noiseStep, firstIntentionFlag)
                 if noisePlayerGrid:
                     realPlayerGrid = self.checkBoundary(noisePlayerGrid)

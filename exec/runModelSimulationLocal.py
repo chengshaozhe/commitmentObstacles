@@ -90,7 +90,7 @@ def main():
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
-        for i in range(4, 10):
+        for i in range(10):
             print(i)
 
             numBlocks = 5
@@ -127,9 +127,9 @@ def main():
                 raise Exception("unmatch condition design")
 
     # deubg
-    #         expDesignValues = [specialDesign] * 10
-    #         noiseDesignValues = ['special'] * 10
-    #         conditionList = [expCondition] * 10
+            # expDesignValues = [specialDesign] * 10
+            # noiseDesignValues = ['special'] * 10
+            # conditionList = [expCondition] * 10
     # debug
 
             isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
@@ -141,7 +141,7 @@ def main():
             modelController = ModelControllerOnline(softmaxBeta, runVI)
             controller = modelController
 
-            renderOn = 0
+            renderOn = 1
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 
