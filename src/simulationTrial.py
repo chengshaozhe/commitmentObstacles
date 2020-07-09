@@ -8,7 +8,7 @@ import random
 
 def calculateGridDis(grid1, grid2):
     gridDis = np.linalg.norm(np.array(grid1) - np.array(grid2), ord=1)
-    return gridDis
+    return int(gridDis)
 
 
 def creatRect(coor1, coor2):
@@ -72,8 +72,8 @@ class NormalTrial():
         trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
-        totalStep = int(np.linalg.norm(np.array(playerGrid) - np.array(bean1Grid), ord=1))
-        noiseStep = sorted(random.sample(list(range(2, totalStep)), designValues))
+        leastStep = min([calculateGridDis(playerGrid, beanGrid) for beanGrid in [bean1Grid, bean2Grid]])
+        noiseStep = sorted(random.sample(list(range(2, leastStep)), designValues))
         stepCount = 0
         goalList = list()
 
@@ -87,9 +87,9 @@ class NormalTrial():
             goalList.append(goal)
             stepCount = stepCount + 1
             noisePlayerGrid, realAction = self.normalNoise(realPlayerGrid, aimAction, noiseStep, stepCount)
+            if noisePlayerGrid in obstacles:
+                noisePlayerGrid = tuple(trajectory[-1])
             realPlayerGrid = self.checkBoundary(noisePlayerGrid)
-            if realPlayerGrid in obstacles:
-                realPlayerGrid = tuple(trajectory[-1])
             reactionTime.append(time.get_ticks() - initialTime)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
