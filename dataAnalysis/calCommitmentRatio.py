@@ -18,8 +18,7 @@ if __name__ == '__main__':
     statData = []
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
-    participants = ['specailnoise0.067_softmaxBeta0.5']
-
+    participants = ['human', 'noise0.067_softmaxBeta6']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
