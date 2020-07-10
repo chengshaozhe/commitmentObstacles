@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import sys
+sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
 import glob
 DIRNAME = os.path.dirname(__file__)
 import matplotlib.pyplot as plt
@@ -9,6 +11,7 @@ import pickle
 from scipy.stats import ttest_ind, entropy, mannwhitneyu, ranksums
 from scipy.interpolate import interp1d
 from dataAnalysis import calculateSE
+from machinePolicy.onlineVIWithObstacle import RunVI
 
 
 def calculateSoftmaxProbability(acionValues, beta):
@@ -17,16 +20,28 @@ def calculateSoftmaxProbability(acionValues, beta):
 
 
 class SoftmaxPolicy:
-    def __init__(self, Q_dict, softmaxBeta):
-        self.Q_dict = Q_dict
+    def __init__(self, softmaxBeta):
         self.softmaxBeta = softmaxBeta
 
-    def __call__(self, playerGrid, target1):
-        actionDict = self.Q_dict[(playerGrid, target1)]
+    def __call__(self, QDict, playerGrid, targetGrid, obstacles):
+        actionDict = QDict[(playerGrid, targetGrid)]
         actionValues = list(actionDict.values())
         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
         softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
         return softMaxActionDict
+
+
+# class SoftmaxPolicy:
+#     def __init__(self, Q_dict, softmaxBeta):
+#         self.Q_dict = Q_dict
+#         self.softmaxBeta = softmaxBeta
+
+#     def __call__(self, playerGrid, target1):
+#         actionDict = self.Q_dict[(playerGrid, target1)]
+#         actionValues = list(actionDict.values())
+#         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+#         softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
+#         return softMaxActionDict
 
 
 class BasePolicy:
@@ -43,11 +58,12 @@ class BasePolicy:
 
 
 class GoalInfernce:
-    def __init__(self, initPrior, goalPolicy):
+    def __init__(self, initPrior, goalPolicy, runVI):
         self.initPrior = initPrior
         self.goalPolicy = goalPolicy
+        self.runVI = runVI
 
-    def __call__(self, trajectory, aimAction, target1, target2):
+    def __call__(self, trajectory, aimAction, target1, target2, obstacles):
         trajectory = list(map(tuple, trajectory))
         goalPosteriorList = []
         priorGoal = initPrior[0]
@@ -55,9 +71,12 @@ class GoalInfernce:
         goal = trajectory[-1]
         targets = list([target1, target2])
         noGoal = [target for target in targets if target != goal][0]
+
+        QDictGoal = self.runVI(goal, obstacles)
+        QDictNoGoal = self.runVI(noGoal, obstacles)
         for playerGrid, action in zip(trajectory, aimAction):
-            likelihoodGoal = self.goalPolicy(playerGrid, goal).get(action)
-            likelihoodB = self.goalPolicy(playerGrid, noGoal).get(action)
+            likelihoodGoal = self.goalPolicy(QDictGoal, playerGrid, goal, obstacles).get(action)
+            likelihoodB = self.goalPolicy(QDictNoGoal, playerGrid, noGoal, obstacles).get(action)
             posteriorGoal = (priorGoal * likelihoodGoal) / ((priorGoal * likelihoodGoal) + (1 - priorGoal) * likelihoodB)
             goalPosteriorList.append(posteriorGoal)
             priorGoal = posteriorGoal
@@ -178,68 +197,41 @@ class CalFirstIntentionStepRatio:
 
 
 if __name__ == '__main__':
-    machinePolicyPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'machinePolicy'))
-    Q_dict = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGoalGird15_policy.pkl"), "rb"))
-    # Q_dict_base = pickle.load(open(os.path.join(machinePolicyPath, "noise0.1commitAreaGird15_policy.pkl"), "rb"))
-    softmaxBeta = 2.5
-    softmaxPolicy = SoftmaxPolicy(Q_dict, softmaxBeta)
-    # basePolicy = BasePolicy(Q_dict_base, softmaxBeta)
+    gridSize = 15
+    noise = 0.067
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    runVI = RunVI(gridSize, noise, noiseActionSpace)
+    softmaxBeta = 5
+    softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
-    inferThreshold = 0.95
-    goalInfernce = GoalInfernce(initPrior, softmaxPolicy)
-    calFirstIntentionStep = CalFirstIntentionStep(inferThreshold)
-    calFirstIntentionStepRatio = CalFirstIntentionStepRatio(calFirstIntentionStep)
-    # calculateActionInformation = CalculateActionInformation(initPrior, softmaxPolicy, basePolicy)
-
-    # trajectory = [(1, 7), [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [7, 7], [8, 7], [8, 9], [9, 9], [10, 9], [8, 9], [9, 9], [10, 9], [11, 9], [12, 9], [12, 8], [12, 7]]
-    # aimAction = [(1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (0, -1), (0, -1)]
-    # target1, target2 = (6, 13), (12, 7)
-
-    # trajectory = [(9, 6), [9, 7], [9, 8], [9, 9], [9, 10], [9, 11], [8, 11], [7, 11], [6, 11], [5, 11], [6, 10], [6, 11], [6, 12], [6, 13]]
-    # aimAction = [(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (-1, 0), (-1, 0), (-1, 0), (-1, 0), (-1, 0), (0, 1), (0, 1), (0, 1)]
-    # target1, target2 = (6, 13), (4, 11)
-
-    # goalPosteriorList = goalInfernce(trajectory, aimAction, target1, target2)
-    # print(len(goalPosteriorList))
-    # firstIntentionStep = calFirstIntentionStep(goalPosteriorList)
-    # firstIntentionStepRatio = calFirstIntentionStepRatio(goalPosteriorList)
-    # goalPosteriorList.insert(0, initPrior[0])
-    # goalPosteriori = np.array(goalPosteriorList).T
-    # x = np.arange(len(goalPosteriorList))
-    # lables = ['goalA']
-    # for i in range(len(lables)):
-    #     plt.plot(x, goalPosteriori, label=lables[i])
-    # xlabels = np.arange(len(goalPosteriorList))
-    # plt.xticks(x, xlabels)
-    # plt.xlabel('step')
-    # plt.legend(loc='best')
-    # plt.show()
+    goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
     statDFList = []
 
-    participants = ['human', 'softmaxBeta2.5']
+    participants = ['human', 'noise0.067_softmaxBeta5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
         nubOfSubj = len(df["name"].unique())
         print(participant, nubOfSubj)
 
-        df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2'])), axis=1)
+        df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+
+        df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
         # df['expectedInfoList'] = df.apply(lambda x: calculateActionInformation(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2'])), axis=1)
 
-        df['firstIntentionStep'] = df.apply(lambda x: calFirstIntentionStep(x['goalPosteriorList']), axis=1)
+        # df['firstIntentionStep'] = df.apply(lambda x: calFirstIntentionStep(x['goalPosteriorList']), axis=1)
 
-        df['firstIntentionStepRatio'] = df.apply(lambda x: calFirstIntentionStepRatio(x['goalPosteriorList']), axis=1)
+        # df['firstIntentionStepRatio'] = df.apply(lambda x: calFirstIntentionStepRatio(x['goalPosteriorList']), axis=1)
 
         df['goalPosterior'] = df.apply(lambda x: calPosterior(x['goalPosteriorList']), axis=1)
         # df['goalPosterior'] = df.apply(lambda x: calInfo(x['expectedInfoList']), axis=1)
 
-        dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
-        # dfExpTrail = df[(df['areaType'] == 'rect')]
+        # df = df[(df['areaType'] == 'rect')]
 
         # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] == 'special')]
 
@@ -271,7 +263,7 @@ if __name__ == '__main__':
         # statsList.append([np.mean(statDF[stat]) for stat in stats])
         # stdList.append([calculateSE(statDF[stat]) for stat in stats])
 
-        goalPosterior = np.array(dfExpTrail['goalPosterior'].tolist())
+        goalPosterior = np.array(df['goalPosterior'].tolist())
         goalPosteriorMean = np.mean(goalPosterior, axis=0)
         goalPosteriorStd = np.divide(np.std(goalPosterior, axis=0, ddof=1), np.sqrt(len(goalPosterior) - 1))
         statsList.append(goalPosteriorMean)
@@ -280,7 +272,7 @@ if __name__ == '__main__':
         def arrMean(df, colnames):
             arr = np.array(df[colnames].tolist())
             return np.mean(arr, axis=0)
-        grouped = pd.DataFrame(dfExpTrail.groupby('name').apply(arrMean, 'goalPosterior'))
+        grouped = pd.DataFrame(df.groupby('name').apply(arrMean, 'goalPosterior'))
         statArr = np.array(grouped.iloc[:, 0].tolist()).T
 
         statDFList.append(statArr)
@@ -293,8 +285,8 @@ if __name__ == '__main__':
     pvalus = np.array([ttest_ind(statDFList[0][i], statDFList[1][i])[1] for i in range(statDFList[0].shape[0])])
     # pvalus = np.array([mannwhitneyu(statDFList[0][i], statDFList[1][i])[1] for i in range(statDFList[0].shape[0])])
 
-    sigArea = np.where(pvalus < 0.05)[0]
-    print(sigArea)
+    # sigArea = np.where(pvalus < 0.05)[0]
+    # print(sigArea)
 
     # print(mannwhitneyu(statDFList[0], statDFList[1]))
     # print(ranksums(statDFList[0], statDFList[1]))
@@ -303,8 +295,6 @@ if __name__ == '__main__':
     # lables = ['Human', 'Agent']
 
     xnew = np.linspace(0., 1., 30)
-    xnewSig = xnew[sigArea]
-    ySig = [stats[sigArea] for stats in statsList]
 
     lineWidth = 1
     for i in range(len(statsList)):
@@ -312,8 +302,10 @@ if __name__ == '__main__':
     # plt.errorbar(xnew, statsList[i], yerr=stdList[i], label=lables[i])
 
  # sig area line
-    for sigLine in [xnewSig[0], xnewSig[-1]]:
-        plt.plot([sigLine] * 10, np.linspace(0.5, 1., 10), color='black', linewidth=2, linestyle="--")
+    # xnewSig = xnew[sigArea]
+    # ySig = [stats[sigArea] for stats in statsList]
+    # for sigLine in [xnewSig[0], xnewSig[-1]]:
+    #     plt.plot([sigLine] * 10, np.linspace(0.5, 1., 10), color='black', linewidth=2, linestyle="--")
 
     # xlabels = ['firstIntentionStepRatio']
     # labels = participants

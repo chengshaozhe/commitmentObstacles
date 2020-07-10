@@ -85,14 +85,14 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [5, 7, 3]
-    noiseList = [0.067]
-    noise = 0.067
-    for softmaxBeta in softmaxBetaList:
-        # for noise in noiseList:
-        for i in range(10):
+    softmaxBetaList = [6]
+    noiseList = [0]
+    # noise = 0.067
+    # for softmaxBeta in softmaxBetaList:
+    softmaxBeta = 6
+    for noise in noiseList:
+        for i in range(20):
             print(i)
-
             numBlocks = 5
             expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
 
@@ -109,6 +109,8 @@ def main():
 
             numControlTrial = int(numExpTrial / 2)
             conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial
+            conditionList = [lineCondition] * numControlTrial
+
             random.shuffle(conditionList)
             numNormalTrials = len(conditionList)
 
@@ -118,10 +120,10 @@ def main():
             blockNumber = int(numNormalTrials / numTrialsPerBlock)
             noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
-            if noise == 0:
-                noiseDesignValues = [0] * numNormalTrials
-
             conditionList.append(specialCondition)
+
+            if noise == 0:
+                noiseDesignValues = [0] * len(conditionList)
 
             if len(conditionList) != len(noiseDesignValues):
                 raise Exception("unmatch condition design")
@@ -141,7 +143,7 @@ def main():
             modelController = ModelControllerOnline(softmaxBeta, runVI)
             controller = modelController
 
-            renderOn = 1
+            renderOn = 0
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 
