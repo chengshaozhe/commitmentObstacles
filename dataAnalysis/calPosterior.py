@@ -201,7 +201,7 @@ if __name__ == '__main__':
     noise = 0.067
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, noise, noiseActionSpace)
-    softmaxBeta = 5
+    softmaxBeta = 6
     softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
     goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
@@ -211,7 +211,7 @@ if __name__ == '__main__':
     stdList = []
     statDFList = []
 
-    participants = ['human', 'noise0.067_softmaxBeta5']
+    participants = ['human', 'noise0.067_softmaxBeta6']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)

@@ -9,7 +9,7 @@ import pickle
 from scipy.stats import ttest_ind, entropy
 from scipy.interpolate import interp1d
 from sklearn.metrics import mutual_info_score as KL
-from dataAnalysis import calculateSE, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone
+from dataAnalysis import calculateSE, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints
 
 
 def calAvoidPoints(playerGrid, decisionSteps):
@@ -26,17 +26,23 @@ def calAvoidPoints(playerGrid, decisionSteps):
     return avoidPoint
 
 
-def isTrajHasAvoidPoints(trajectory, playerGrid, decisionSteps):
+def isTrajHasAvoidPoints(trajectory, aimAction, playerGrid, target1, target2, decisionSteps, conditionName):
     trajectory = list(map(tuple, trajectory))
-    avoidPoint = calAvoidPoints(playerGrid, decisionSteps)
-    hasMidPoint = 1 if avoidPoint in trajectory else 0
+    initPlayerGrid = trajectory[0]
+    if conditionName == 'expCondition':
+        avoidPoint = calAvoidPoints(initPlayerGrid, decisionSteps)
+        hasMidPoint = 1 if avoidPoint in trajectory else 0
+    if conditionName == 'lineCondition':
+        avoidPoint = calMidPoints(initPlayerGrid, target1, target2)
+        hasMidPoint = 1 if avoidPoint in trajectory else 0
+        # hasMidPoint = 1 if aimAction[decisionSteps] == aimAction[decisionSteps - 1] else 0
     return hasMidPoint
 
 
 def sliceTraj(trajectory, midPoint):
     trajectory = list(map(tuple, trajectory))
     index = trajectory.index(midPoint) + 1
-    return trajectory[: index]
+    return trajectory[:index]
 
 
 def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
@@ -54,12 +60,11 @@ if __name__ == '__main__':
     statsListAll = []
     stdListAll = []
 
-    participants = ['human', 'noise0.067_softmaxBeta6']
+    participants = ['human', 'noise0.067_softmaxBeta7']
     for participant in participants:
         statsList = []
         stdList = []
         for decisionStep in [2, 4, 6]:
-
             dataPath = os.path.join(resultsPath, participant)
             df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
             nubOfSubj = len(df["name"].unique())
@@ -67,22 +72,29 @@ if __name__ == '__main__':
             # print(df.columns)
             # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
             # df = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
+
             df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-            # df = df[(df['decisionSteps'] == 4) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
-            df = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition')]
+
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition') & (df['isDecisionStepInZone'] == 1)]
+
+            dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
+
+            # df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
             # df = df[(df['decisionSteps'] == 2) & (df['conditionName'] == 'expCondition')]
 
             # print(len(df))
-            df['hasAvoidPoint'] = df.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['playerGrid']), x['decisionSteps']), axis=1)
 
             # dfExpTrail = df[(df['areaType'] == 'rect')]
-
             # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] == 'special')]
 
             # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] != 'none')]
-
             # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'midLine')]
             # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine')]
             # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine') & (df['intentionedDisToTargetMin'] == 2)]
@@ -101,7 +113,21 @@ if __name__ == '__main__':
             # statDF['firstIntentionStepRatio'] = dfExpTrail.groupby('name')["firstIntentionStepRatio"].mean()
             # statDF['goalPosterior'] = dfExpTrail.groupby('name')["goalPosterior"].mean()
 
-            statDF['avoidCommitPoint'] = df.groupby('name')["hasAvoidPoint"].sum() / (len(df) / len(df.groupby('name')["hasAvoidPoint"]))
+            # statDF['avoidCommitPoint'] = df.groupby('name')["hasAvoidPoint"].sum() / (len(df) / len(df.groupby('name')["hasAvoidPoint"]))
+
+            # print(len(df.groupby('name')))
+
+            # statDF['avoidCommitPoint'] = dfExpTrail.groupby('name')["hasAvoidPoint"].sum() / (len(dfExpTrail) / len(dfExpTrail.groupby('name')["hasAvoidPoint"]))
+
+            # statDF['avoidCommitPoint'] = dfExpTrail.groupby('name')["hasAvoidPoint"].sum() / (len(dfExpTrail))
+
+            # print(dfExpTrail.groupby('name')["hasAvoidPoint"].sum())
+            # print(dfExpTrail.groupby('name')["hasAvoidPoint"].count())
+
+            statDF['avoidCommitPoint'] = dfExpTrail.groupby('name')["hasAvoidPoint"].sum() / dfExpTrail.groupby('name')["hasAvoidPoint"].count()
+
+            # print(dfExpTrail.groupby('name')["hasAvoidPoint"].count())
+            # print(statDF['avoidCommitPoint'])
 
             # statDF['midTriaPercent'] = df.groupby(['name','decisionSteps'])["hasAvoidPoint"].sum() / (len(df) / len(df.groupby(['name','decisionSteps'])["hasAvoidPoint"]))
             # stats = list(statDF.groupby('decisionSteps')['midTriaPercent'].mean())[:-1]
@@ -123,19 +149,10 @@ if __name__ == '__main__':
     print(statsListAll)
     print(stdListAll)
 
-    # statsList = [[0.48124999999999996], [0.46562499999999996], [0.4270833333333333], [0.4875]]
-    # stdList = [[0.02443813049769197], [0.01927505584370063], [0.027776388854164925], [0.013471506281091268]]
-
-    # statsList = [[0.65625], [0.578125], [0.515625], [0.5538194444444444]]
-    # stdList = [[0.02840909090909091], [0.022904141330393608], [0.032967604518047755], [0.015022732366528775]]
-
-    # labels = ['RL Agent', '4', '6', 'all']
-
     # labels = participants
     labels = ['Human', 'RL Agent']
     # xlabels = list(statDF.columns)
     xlabels = [2, 4, 6]
-    # labels = participants
 
     x = np.arange(len(xlabels))
     totalWidth, n = 0.6, len(xlabels)
@@ -144,9 +161,9 @@ if __name__ == '__main__':
     for i in range(len(labels)):
         plt.bar(x + width * i, statsListAll[i], yerr=stdListAll[i], width=width, label=labels[i])
     plt.xticks(x, xlabels)
-    plt.xlabel('decisionStep')
+    plt.xlabel('Decision Step')
     plt.ylim((0, 1))
     plt.legend(loc='best')
-    plt.title('avoidCommit')  # Intention Consistency
+    plt.title('Avoid Commitment Ratio')  # Intention Consistency
 
     plt.show()

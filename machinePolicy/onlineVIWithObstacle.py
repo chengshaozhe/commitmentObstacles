@@ -220,14 +220,16 @@ class RunVI:
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        mapValue = 'V'
-        heatMapValue = eval(mapValue)
-        y = dict_to_array(heatMapValue)
-        y = y.reshape((self.gridSize, self.gridSize))
-        df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-        sns.heatmap(df, annot=True, fmt='.3f')
-        plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
-        plt.show()
+        VIZ = 0
+        if VIZ:
+            mapValue = 'V'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            y = y.reshape((self.gridSize, self.gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
+            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+            plt.show()
 
         # print(Q_dict)
         return Q_dict
@@ -249,8 +251,8 @@ if __name__ == '__main__':
     # obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
     # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
 
-    # sheep_states = ((11, 3), (11, 11))
-    # obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8))
+    sheep_states = ((11, 3), (11, 11))
+    obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8), (6, 6), (6, 8), (7, 6), (7, 8), (8, 6), (8, 8))
 
     Q_dict = runVI(sheep_states, obstacles_states)
-    # print(Q_dict)
+    print(Q_dict[(4, 7), sheep_states])

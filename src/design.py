@@ -117,7 +117,7 @@ class CreatSingleGoalMap:
 
     def __call__(self, distance):
         playerGrid = (random.randint(1, max(1, self.dimension - 2)), random.randint(1, max(1, self.dimension - 2)))
-        allGrids = tuple(it.product(range(1, self.dimension - 2), range(1, self.dimension - 2)))
+        allGrids = tuple(it.product(range(self.dimension), range(self.dimension)))
         possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) == distance, allGrids))
         targetGrid = random.choice(possibleGrids)
         return playerGrid, targetGrid
