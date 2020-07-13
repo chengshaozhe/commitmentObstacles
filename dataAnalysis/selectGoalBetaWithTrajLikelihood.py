@@ -359,7 +359,7 @@ if __name__ == '__main__':
     df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
     print(df.columns)
 
-    softmaxBetaList = [10, 11, 12, 13, 14, 15, 20]
+    softmaxBetaList = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20]
     statsList = []
     stdList = []
     for softmaxBeta in softmaxBetaList:

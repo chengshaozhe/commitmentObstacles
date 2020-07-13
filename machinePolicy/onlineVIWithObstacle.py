@@ -10,7 +10,7 @@ import sys
 import time
 import pandas as pd
 import seaborn as sns
-
+import random
 # from viz import *
 # from reward import *
 
@@ -130,7 +130,8 @@ class ValueIteration():
             for s in S_iter:
                 V_init[s] = max([sum([p * (R[s][a][s_n] + gamma * V[s_n]) for (s_n, p) in T[s][a].items()]) for a in A])
             delta = np.array([abs(V[s] - V_init[s]) for s in S_iter])
-            if np.all(delta < epsilon * (1 - gamma) / gamma):
+            # if np.all(delta < epsilon * (1 - gamma) / gamma):
+            if np.all(delta < self.epsilon):
                 break
         return V
 
@@ -211,8 +212,8 @@ class RunVI:
         R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        gamma = 0.9
-        valueIteration = ValueIteration(gamma, epsilon=0.0001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
+        gamma = 0.99
+        valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
         V = valueIteration(S, A, T, R)
         V_arr = V_dict_to_array(V, S)
         # print(V)
@@ -220,7 +221,7 @@ class RunVI:
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        VIZ = 0
+        VIZ = 1
         if VIZ:
             mapValue = 'V'
             heatMapValue = eval(mapValue)
@@ -238,7 +239,7 @@ class RunVI:
 if __name__ == '__main__':
 
     gridSize = 15
-    noise = 0.01
+    noise = 0.1
     noiseSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
@@ -246,13 +247,24 @@ if __name__ == '__main__':
 
     sheep_states = ((6, 11), (11, 6))
     # sheep_states = ((6, 11),)
-    obstacles_states = ((2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2))
-    # obstacles_states = ((3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6))
-    # obstacles_states = ((4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4))
+
+    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
+                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
+                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+
+    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
+
+    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
+                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
+                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
+
+    obstacles_states = random.choice(obstaclesMap1)
     # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
 
-    sheep_states = ((11, 3), (11, 11))
-    obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8), (6, 6), (6, 8), (7, 6), (7, 8), (8, 6), (8, 8))
+    # sheep_states = ((11, 3), (11, 11))
+    # obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8), (6, 6), (6, 8), (7, 6), (7, 8), (8, 6), (8, 8))
 
     Q_dict = runVI(sheep_states, obstacles_states)
-    print(Q_dict[(4, 7), sheep_states])
+    # print(Q_dict[(4, 7), sheep_states])

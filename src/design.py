@@ -46,7 +46,6 @@ def isZoneALine(zone):
 def createNoiseDesignValue(noiseCondition, blockNumber):
     noiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(blockNumber)]).flatten().tolist()
     noiseDesignValues.append('special')
-
     return noiseDesignValues
 
 
@@ -65,13 +64,12 @@ class CreatRectMap():
         self.rotatePoint = rotatePoint
 
     def __call__(self, width, height, distance, decisionSteps, targetDiffs):
-        targetDiff = targetDiffs / 2
-        playerGrid = (random.randint(1, max(1, self.dimension - distance - width - targetDiff - 2)), random.randint(1, max(1, self.dimension - distance - height - targetDiff - 2)))
+        playerGrid = (random.randint(1, max(1, self.dimension - distance - width - targetDiffs - 2)), random.randint(1, max(1, self.dimension - distance - height - targetDiffs - 2)))
 
-        target1 = (playerGrid[0] + width + distance, playerGrid[1] + height)
-        target2 = (playerGrid[0] + width + targetDiff, playerGrid[1] + height + distance + targetDiff)
+        target1 = (playerGrid[0] + width + distance + targetDiffs, playerGrid[1] + height)
+        target2 = (playerGrid[0] + width, playerGrid[1] + height + distance)
 
-        obstaclesBase = self.obstaclesMaps[decisionSteps]
+        obstaclesBase = random.choice(self.obstaclesMaps[decisionSteps])
         transformBase = (playerGrid[0] - 1, playerGrid[1] - 1)
         obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
 
@@ -157,6 +155,18 @@ class RotatePoint:
         return (int(x), int(y))
 
 
+class IsInBoundary():
+    def __init__(self, xBoundary, yBoundary):
+        self.xMin, self.xMax = xBoundary
+        self.yMin, self.yMax = yBoundary
+
+    def __call__(self, position):
+        if position[0] > self.xMax or position[0] < self.xMin or position[1] > self.yMax or position[1] < self.yMin:
+            return False
+        else:
+            return True
+
+
 if __name__ == '__main__':
     dimension = 15
     import pygame
@@ -183,35 +193,55 @@ if __name__ == '__main__':
     height = [5]
     intentionDis = [3, 4, 5, 6]
     decisionSteps = [2, 4, 6]
-    targetDiffs = [0, 2, 4]
+    targetDiffs = [0, 0, 1, 2]
     rotateAngles = [0, 90, 180, 270]
 
-    expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs]
+    expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * 3
 
-    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
-    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
-    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+    print(len(expDesignValues))
+
+    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
+                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
+                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+
+    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
+
+    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
+                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
+                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
+
+    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
+                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
+                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
 
     # obstaclesMap4 =
     speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
     obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
     obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
+    gridSize = 15
     rotatePoint = RotatePoint(dimension)
-    creatRectMap = CreatRectMap(rotateAngles, dimension, obstaclesMaps, rotatePoint)
-    samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, expDesignValues)
+    isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
+    creatRectMap = CreatRectMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
+    creatLineMap = CreatLineMap(rotateAngles, gridSize, rotatePoint, isInBoundary)
+    samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
 
 
 # sample
-    condition = 'exp'
+    from collections import namedtuple
+    condition = namedtuple('condition', 'name decisionSteps')
+    expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
     for _ in range(30):
-        playerGrid, target1, target2, obstacles, decisionSteps = samplePositionFromCondition(condition)
+        playerGrid, target1, target2, obstacles, decisionSteps, targetDiff = samplePositionFromCondition(expCondition)
         # obstacles = creatObstacles(pointList)
 
         # playerGrid = (1, 1)
         # obstacles = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
         # obstacles = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
         # obstacles = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+        # obstacles = [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)]
 
         angle = random.choice(rotateAngles)
         playerGrid, target1, target2 = [rotatePoint(point, angle) for point in [playerGrid, target1, target2]]

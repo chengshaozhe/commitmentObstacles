@@ -116,6 +116,7 @@ class NormalTrial():
         trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
+        aimPlayerGridList = []
         leastStep = min([calculateGridDis(playerGrid, beanGrid) for beanGrid in [bean1Grid, bean2Grid]])
         noiseStep = sorted(random.sample(list(range(2, leastStep)), designValues))
 
@@ -142,11 +143,13 @@ class NormalTrial():
             self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
+            aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
         pg.time.wait(500)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
+        results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["aimAction"] = str(aimActionList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)
@@ -167,6 +170,7 @@ class SpecialTrial():
         trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
+        aimPlayerGridList = []
         firstIntentionFlag = False
         noiseStep = list()
         stepCount = 0
@@ -200,12 +204,14 @@ class SpecialTrial():
             self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
+            aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
 
         pg.time.wait(500)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
+        results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["aimAction"] = str(aimActionList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)

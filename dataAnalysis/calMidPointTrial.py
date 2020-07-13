@@ -26,6 +26,13 @@ def calAvoidPoints(playerGrid, decisionSteps):
     return avoidPoint
 
 
+def isGridsALine(playerGrid, targetGrid):
+    if playerGrid[0] == targetGrid[0] or playerGrid[1] == targetGrid[1]:
+        return True
+    else:
+        return False
+
+
 def isTrajHasAvoidPoints(trajectory, aimAction, playerGrid, target1, target2, decisionSteps, conditionName):
     trajectory = list(map(tuple, trajectory))
     initPlayerGrid = trajectory[0]
@@ -60,7 +67,7 @@ if __name__ == '__main__':
     statsListAll = []
     stdListAll = []
 
-    participants = ['human', 'noise0.067_softmaxBeta7']
+    participants = ['human', 'noise0.067_softmaxBeta6']
     for participant in participants:
         statsList = []
         stdList = []
@@ -75,9 +82,9 @@ if __name__ == '__main__':
 
             df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
-            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
 
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition')]
 

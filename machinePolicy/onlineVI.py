@@ -172,12 +172,12 @@ def Q_from_V(s, a, T=None, R=None, V=None, gamma=None):
 
 
 def runVI(sheep_states, goalRewardList):
-    gridSize = 10
+    gridSize = 15
     env = GridWorld("test", nx=gridSize, ny=gridSize)
 
     terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
 
-    env.add_terminals(list(obstacles_states))
+    # env.add_terminals(list(sheep_states))
     env.add_feature_map("goal", terminalValue, default=0)
     env.add_terminals(list(sheep_states))
 
@@ -196,8 +196,9 @@ def runVI(sheep_states, goalRewardList):
     T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                          for a in A] for s in S])
 
+    stepCost = - goalRewardList[0] / (gridSize * 2)
     reward_func = ft.partial(
-        grid_reward, env=env, const=-1, terminals=sheep_states)
+        grid_reward, env=env, const=stepCost, terminals=sheep_states)
 
     R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
     R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
@@ -225,8 +226,10 @@ def runVI(sheep_states, goalRewardList):
 
 if __name__ == '__main__':
 
-    sheep_states = ((6, 2), (6, 6))
-    goalRewardList = [100, 60]
+    # sheep_states = ((6, 2), (2, 6))
+    sheep_states = ((6, 2), )
+
+    goalRewardList = [10, 10]
 
     Q_dict = runVI(sheep_states, goalRewardList)
-    print(Q_dict)
+    # print(Q_dict)
