@@ -106,13 +106,15 @@ def main():
     conditionList = [expCondition] * numExpTrial
 
     random.shuffle(conditionList)
-    conditionList.append(specialCondition)
 
     numNormalTrials = len(conditionList)
+    print(numNormalTrials)
     numTrialsPerBlock = 3
     noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
     blockNumber = int(numNormalTrials / numTrialsPerBlock)
     noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
+
+    conditionList.append(specialCondition)
 
     noise = 0.067
     if noise == 0:
@@ -163,7 +165,7 @@ def main():
     singleGoalExperiment = SingleGoalExperiment(singleGoalTrial, baseLineWriter, experimentValues, creatSingleGoalMap)
 
     baseLineTrialCondition = [6, 8, 10, 12, 14]
-    numBaseLineTrialBlock = 3
+    numBaseLineTrialBlock = 0
     numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
     baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
     baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock
