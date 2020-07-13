@@ -67,7 +67,7 @@ if __name__ == '__main__':
     statsListAll = []
     stdListAll = []
 
-    participants = ['human', 'noise0.067_softmaxBeta6']
+    participants = ['noise0.067_softmaxBeta5']
     for participant in participants:
         statsList = []
         stdList = []
@@ -82,9 +82,9 @@ if __name__ == '__main__':
 
             df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
-            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
 
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition')]
 
@@ -156,8 +156,8 @@ if __name__ == '__main__':
     print(statsListAll)
     print(stdListAll)
 
-    # labels = participants
-    labels = ['Human', 'RL Agent']
+    labels = participants
+    # labels = ['Human', 'RL Agent']
     # xlabels = list(statDF.columns)
     xlabels = [2, 4, 6]
 

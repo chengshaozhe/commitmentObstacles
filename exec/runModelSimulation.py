@@ -1,5 +1,4 @@
 import os
-import os
 import sys
 sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
 import pygame as pg
@@ -96,7 +95,7 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [5, 8, 10]
+    softmaxBetaList = [4, 6, 8, 10]
     noiseList = [0.067]
     noise = 0.067
     for softmaxBeta in softmaxBetaList:
@@ -156,7 +155,11 @@ def main():
 
             experimentValues = co.OrderedDict()
             experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
-            writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
+            resultsDirPath = os.path.join(resultsPath, "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
+            if not os.path.exists(resultsDirPath):
+                os.mkdir(resultsDirPath)
+
+            writerPath = os.path.join(resultsDirPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
             experiment = ObstacleModelSimulation(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath, runVI)
             experiment(noiseDesignValues, conditionList)

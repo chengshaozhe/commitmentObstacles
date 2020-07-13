@@ -33,7 +33,6 @@ class ObstacleExperiment():
                 results = self.normalTrial(target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex])
             else:
                 results = self.specialTrial(target1, target2, playerGrid, obstacles)
-            print('trialIndex:', trialIndex)
             results["conditionName"] = condition.name
             results["noiseNumber"] = noiseDesignValues[trialIndex]
             results["playerGrid"] = str(playerGrid)
@@ -60,8 +59,6 @@ class ObstacleModelSimulation():
 
     def __call__(self, noiseDesignValues, conditionList):
         for trialIndex, condition in enumerate(conditionList):
-            print('trialIndex:', trialIndex)
-
             playerGrid, target1, target2, obstacles, decisionSteps, targetDiff = self.samplePositionFromCondition(condition)
             QDict = self.runVI((target1, target2), obstacles)
 
