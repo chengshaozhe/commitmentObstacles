@@ -108,17 +108,12 @@ def main():
     random.shuffle(conditionList)
 
     numNormalTrials = len(conditionList)
-    print(numNormalTrials)
     numTrialsPerBlock = 3
     noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
     blockNumber = int(numNormalTrials / numTrialsPerBlock)
     noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
     conditionList.append(specialCondition)
-
-    noise = 0.067
-    if noise == 0:
-        noiseDesignValues = [0] * numNormalTrials
 
 # deubg
     # expDesignValues = [specialDesign] * 10
