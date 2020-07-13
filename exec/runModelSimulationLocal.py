@@ -64,25 +64,14 @@ def main():
     height = [5]
     intentionDis = [3, 4, 5]
     decisionSteps = [2, 4, 6, 10]
-    targetDiffs = [0, 0, 1, 2]
+    targetDiffs = [0, 2, 4]
 
     rotateAngles = [0, 90, 180, 270]
-    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
-                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
-                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
+    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
+    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
 
-    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
-
-    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
-                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
-                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
-
-    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
-                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
-                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
-
+    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
     obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
     obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
@@ -96,15 +85,15 @@ def main():
     initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [5, 8, 10]
-    noiseList = [0.067]
-    noise = 0.067
-    for softmaxBeta in softmaxBetaList:
-        # for noise in noiseList:
-        for i in range(30):
+    softmaxBetaList = [6]
+    noiseList = [0]
+    # noise = 0.067
+    # for softmaxBeta in softmaxBetaList:
+    softmaxBeta = 6
+    for noise in noiseList:
+        for i in range(20):
             print(i)
-
-            numBlocks = 3
+            numBlocks = 5
             expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
 
             random.shuffle(expDesignValues)
@@ -118,27 +107,31 @@ def main():
             lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
             specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
-            conditionList = [expCondition] * numExpTrial
+            numControlTrial = int(numExpTrial / 2)
+            conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial
+            conditionList = [lineCondition] * numControlTrial
+
             random.shuffle(conditionList)
             numNormalTrials = len(conditionList)
 
             numTrialsPerBlock = 3
-            noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
+            noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock))
+            noiseCondition.append((1, 1, 1))
             blockNumber = int(numNormalTrials / numTrialsPerBlock)
             noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
-            if noise == 0:
-                noiseDesignValues = [0] * numNormalTrials
-
             conditionList.append(specialCondition)
+
+            if noise == 0:
+                noiseDesignValues = [0] * len(conditionList)
 
             if len(conditionList) != len(noiseDesignValues):
                 raise Exception("unmatch condition design")
 
     # deubg
-    #         expDesignValues = [specialDesign] * 10
-    #         noiseDesignValues = ['special'] * 10
-    #         conditionList = [expCondition] * 10
+            # expDesignValues = [specialDesign] * 10
+            # noiseDesignValues = ['special'] * 10
+            # conditionList = [expCondition] * 10
     # debug
 
             isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])

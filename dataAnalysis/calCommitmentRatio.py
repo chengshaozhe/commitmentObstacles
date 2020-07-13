@@ -18,9 +18,16 @@ if __name__ == '__main__':
     statData = []
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
+<<<<<<< HEAD
+    participants = ['noise0.067_softmaxBeta']
+
+=======
     participants = ['human', 'noise0.067_softmaxBeta6']
+>>>>>>> c14e580fb1ef14d06c3fcbd9576284af583daddd
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
+        # dataPath = resultsPath
+
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
         # df.to_csv("all.csv")
         nubOfSubj = len(df["name"].unique())
