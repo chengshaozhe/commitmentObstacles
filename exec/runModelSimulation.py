@@ -15,7 +15,7 @@ from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
 from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
 from src.simulationTrial import NormalTrial, SpecialTrial
-from src.experiment import ObstacleExperiment
+from src.experiment import ObstacleModelSimulation
 from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
 from machinePolicy.onlineVIWithObstacle import RunVI
 from src.design import *
@@ -147,7 +147,7 @@ def main():
             samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
 
             runVI = RunVI(gridSize, noise, noiseActionSpace)
-            modelController = ModelControllerOnline(softmaxBeta, runVI)
+            modelController = ModelControllerOnline(softmaxBeta)
             controller = modelController
 
             renderOn = 0
@@ -158,7 +158,7 @@ def main():
             experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
             writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
-            experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
+            experiment = ObstacleModelSimulation(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath, runVI)
             experiment(noiseDesignValues, conditionList)
 
 

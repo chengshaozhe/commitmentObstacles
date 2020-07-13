@@ -349,12 +349,10 @@ class ModelControllerOnlineReward:
 
 
 class ModelControllerOnline:
-    def __init__(self, softmaxBeta, runVI):
+    def __init__(self, softmaxBeta):
         self.softmaxBeta = softmaxBeta
-        self.runVI = runVI
 
-    def __call__(self, playerGrid, targetGrid1, targetGrid2, obstacles):
-        QDict = self.runVI((targetGrid1, targetGrid2), obstacles)
+    def __call__(self, playerGrid, targetGrid1, targetGrid2, QDict):
         actionDict = QDict[(playerGrid, (targetGrid1, targetGrid2))]
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)

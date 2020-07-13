@@ -65,7 +65,7 @@ class NormalTrial():
         self.normalNoise = normalNoise
         self.checkBoundary = checkBoundary
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, designValues):
+    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, designValues, QDict):
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
@@ -83,7 +83,7 @@ class NormalTrial():
         while pause:
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
-            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
+            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, QDict)
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)
             stepCount = stepCount + 1
@@ -114,7 +114,7 @@ class SpecialTrial():
         self.specialNoise = specialNoise
         self.checkBoundary = checkBoundary
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles):
+    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, QDict):
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
@@ -132,7 +132,7 @@ class SpecialTrial():
         while pause:
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
-            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, obstacles)
+            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, QDict)
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)
             stepCount = stepCount + 1
