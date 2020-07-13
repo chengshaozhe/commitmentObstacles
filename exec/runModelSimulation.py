@@ -1,4 +1,5 @@
 import os
+import os
 import sys
 sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
 import pygame as pg
@@ -11,11 +12,14 @@ import random
 import pandas as pd
 
 from src.writer import WriteDataFrameToCSV
-from src.visualization import DrawBackground, DrawNewState, DrawImage, DrawText
-from src.controller import HumanController, ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise
-from src.trial import NormalTrial, SpecialTrial
-from src.experiment import Experiment
-from src.design import CreatExpCondition, SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue
+from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
+from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
+from src.simulationTrial import NormalTrial, SpecialTrial
+from src.experiment import ObstacleExperiment
+from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
+from machinePolicy.onlineVIWithObstacle import RunVI
+from src.design import *
+from src.controller import *
 
 
 def main():
@@ -30,7 +34,12 @@ def main():
 
     screenWidth = 600
     screenHeight = 600
-    screen = pg.display.set_mode((screenWidth, screenHeight))
+    fullScreen = False
+    renderOn = False
+    initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
+    screen = initializeScreen()
+    pg.mouse.set_visible(False)
+
     leaveEdgeSpace = 2
     lineWidth = 1
     backgroundColor = [205, 255, 204]
@@ -50,64 +59,108 @@ def main():
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
 
-    for i in range(20):
-        print(i)
+# condition
+    width = [5]
+    height = [5]
+    intentionDis = [3, 4, 5]
+    decisionSteps = [2, 4, 6, 10]
+    targetDiffs = [0, 0, 1, 2]
 
-        width = [3, 4, 5]
-        height = [3, 4, 5]
-        intentionDis = [2, 4, 6]
-        direction = [45, 135, 225, 315]
+    rotateAngles = [0, 90, 180, 270]
+    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
+                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
+                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
 
-        expDesignValues = [[b, h, d] for b in width for h in height for d in intentionDis]
-        numExpTrial = len(expDesignValues)
-        random.shuffle(expDesignValues)
-        expDesignValues.append(random.choice(expDesignValues))
-        createExpCondition = CreatExpCondition(direction, gridSize)
-        samplePositionFromCondition = SamplePositionFromCondition(df, createExpCondition, expDesignValues)
+    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
+                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
 
-        distanceDiffList = [0, 2, 4]
-        minDisList = range(5, 15)
-        intentionedDisToTargetList = [2, 4, 6]
-        rectAreaSize = [6, 8, 10, 12, 14, 16, 18, 20, 25, 30, 36]
-        lineAreaSize = [4, 5, 6, 7, 8, 9, 10]
-        condition = namedtuple('condition', 'name areaType distanceDiff minDis areaSize intentionedDisToTarget')
+    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
+                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
+                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
 
-        expCondition = condition(name='expCondition', areaType='rect', distanceDiff=[0], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-        rectCondition = condition(name='controlRect', areaType='rect', distanceDiff=[2, 4], minDis=minDisList, areaSize=rectAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-        straightLineCondition = condition(name='straightLine', areaType='straightLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-        midLineCondition = condition(name='MidLine', areaType='midLine', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=lineAreaSize, intentionedDisToTarget=intentionedDisToTargetList)
-        noAreaCondition = condition(name='noArea', areaType='none', distanceDiff=distanceDiffList, minDis=minDisList, areaSize=[0], intentionedDisToTarget=intentionedDisToTargetList)
+    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
+                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
+                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
 
-        numControlTrial = int(numExpTrial * 2 / 3)
-        expTrials = [expCondition] * numExpTrial
-        conditionList = list(expTrials + [rectCondition] * numExpTrial + [straightLineCondition] * numControlTrial + [midLineCondition] * numControlTrial + [noAreaCondition] * numControlTrial)
-        random.shuffle(conditionList)
-        numNormalTrials = len(conditionList)
-        conditionList.append(expCondition)
+    obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
+    obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
-        noiseCondition = list(permutations([1, 2, 0], 3))
-        noiseCondition.append((1, 1, 1))
-        blockNumber = int(numNormalTrials / 3)
-        noiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(blockNumber)]).flatten().tolist()
-        noiseDesignValues.append('special')
+    rotatePoint = RotatePoint(gridSize)
 
-        policy = pickle.load(open(os.path.join(machinePolicyPath , "noise0.1WolfToTwoSheepGird15_policy.pkl"), "rb"))
-        softmaxBeta = 2.5
-        modelController = ModelController(policy, gridSize, softmaxBeta)
-        controller = modelController
+    checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
+    specialNoise = backToCrossPointNoise
 
-        checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
-        noiseActionSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-        normalNoise = NormalNoise(noiseActionSpace, gridSize)
-        normalTrial = NormalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
-        specialTrial = SpecialTrial(controller, drawNewState, drawText, backToZoneNoise, checkBoundary)
-        experimentValues = co.OrderedDict()
+    initPrior = [0.5, 0.5]
+    # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-        experimentValues["name"] = "softmaxModel" + str(i)
-        writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
-        writer = WriteDataFrameToCSV(writerPath)
-        experiment = Experiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
-        experiment(noiseDesignValues, conditionList)
+    softmaxBetaList = [5, 8, 10]
+    noiseList = [0.067]
+    noise = 0.067
+    for softmaxBeta in softmaxBetaList:
+        # for noise in noiseList:
+        for i in range(30):
+            print(i)
+
+            numBlocks = 3
+            expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
+
+            random.shuffle(expDesignValues)
+            numExpTrial = len(expDesignValues)
+
+            specialDesign = [5, 5, 4, 10, 0]
+            expDesignValues.append(specialDesign)
+
+            condition = namedtuple('condition', 'name decisionSteps')
+            expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
+            lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
+            specialCondition = condition(name='specialCondition', decisionSteps=[10])
+
+            conditionList = [expCondition] * numExpTrial
+            random.shuffle(conditionList)
+            numNormalTrials = len(conditionList)
+
+            numTrialsPerBlock = 3
+            noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
+            blockNumber = int(numNormalTrials / numTrialsPerBlock)
+            noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
+
+            if noise == 0:
+                noiseDesignValues = [0] * numNormalTrials
+
+            conditionList.append(specialCondition)
+
+            if len(conditionList) != len(noiseDesignValues):
+                raise Exception("unmatch condition design")
+
+    # deubg
+    #         expDesignValues = [specialDesign] * 10
+    #         noiseDesignValues = ['special'] * 10
+    #         conditionList = [expCondition] * 10
+    # debug
+
+            isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
+            creatRectMap = CreatRectMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
+            creatLineMap = CreatLineMap(rotateAngles, gridSize, rotatePoint, isInBoundary)
+            samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
+
+            runVI = RunVI(gridSize, noise, noiseActionSpace)
+            modelController = ModelControllerOnline(softmaxBeta, runVI)
+            controller = modelController
+
+            renderOn = 0
+            normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
+            specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
+
+            experimentValues = co.OrderedDict()
+            experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
+            writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
+            writer = WriteDataFrameToCSV(writerPath)
+            experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
+            experiment(noiseDesignValues, conditionList)
+
 
 if __name__ == "__main__":
     main()

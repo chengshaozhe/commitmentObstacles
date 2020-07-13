@@ -68,28 +68,17 @@ def main():
     intentionDis = [3, 4, 5]
     rotateAngles = [0, 90, 180, 270]
     decisionSteps = [2, 4, 6, 10]
-    targetDiffs = [0, 0, 1, 2]
+    targetDiffs = [0, 2, 4]
 
-    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
-                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
-                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
+    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
+    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
 
-    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
-
-    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
-                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
-                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
-
-    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
-                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
-                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
-
+    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
     obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
     obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
-    numBlocks = 3
+    numBlocks = 5
     expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
 
     random.shuffle(expDesignValues)
@@ -103,9 +92,12 @@ def main():
     lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
     specialCondition = condition(name='specialCondition', decisionSteps=[10])
 
-    conditionList = [expCondition] * numExpTrial
+    numControlTrial = int(numExpTrial / 2)
+    conditionList = [expCondition] * numControlTrial + [lineCondition] * numControlTrial
+    # conditionList = [lineCondition] * numControlTrial
 
     random.shuffle(conditionList)
+    conditionList.append(specialCondition)
 
     numNormalTrials = len(conditionList)
     numTrialsPerBlock = 3
@@ -113,7 +105,12 @@ def main():
     blockNumber = int(numNormalTrials / numTrialsPerBlock)
     noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
-    conditionList.append(specialCondition)
+    noise = 0.067
+    if noise == 0:
+        noiseDesignValues = [0] * numNormalTrials
+
+    if len(conditionList) != len(noiseDesignValues):
+        raise Exception("unmatch condition design")
 
 # deubg
     # expDesignValues = [specialDesign] * 10
@@ -121,15 +118,15 @@ def main():
     # conditionList = [specialCondition] * 10
 # debug
 
-    if len(conditionList) != len(noiseDesignValues):
-        raise Exception("unmatch condition design")
-
     experimentValues = co.OrderedDict()
     # experimentValues["name"] = input("Please enter your name:").capitalize()
     experimentValues["name"] = 'test'
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
+
+    baseLineWriterPath = os.path.join(resultsPath, 'baseLine' + experimentValues["name"] + '.csv')
+    baseLineWriter = WriteDataFrameToCSV(baseLineWriterPath)
 
     rotatePoint = RotatePoint(gridSize)
     isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
@@ -151,16 +148,12 @@ def main():
 
     experiment = ObstacleExperiment(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath)
 
-#
-    baseLineWriterPath = os.path.join(resultsPath, 'baseLine' + experimentValues["name"] + '.csv')
-    baseLineWriter = WriteDataFrameToCSV(baseLineWriterPath)
-
     singleGoalTrial = SingleGoalTrial(controller, drawNewState, drawText, normalNoise, checkBoundary)
     creatSingleGoalMap = CreatSingleGoalMap(gridSize)
     singleGoalExperiment = SingleGoalExperiment(singleGoalTrial, baseLineWriter, experimentValues, creatSingleGoalMap)
 
     baseLineTrialCondition = [6, 8, 10, 12, 14]
-    numBaseLineTrialBlock = 3
+    numBaseLineTrialBlock = 5
     numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
     baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
     baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock

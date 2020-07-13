@@ -10,7 +10,7 @@ import numpy as np
 import pickle
 from scipy.stats import ttest_ind, entropy, mannwhitneyu, ranksums
 from scipy.interpolate import interp1d
-from dataAnalysis import calculateSE
+from dataAnalysis import calculateSE, calculateAvoidCommitmnetZone
 from machinePolicy.onlineVIWithObstacle import RunVI
 
 
@@ -155,13 +155,17 @@ class CalculateActionInformation:
         return cumulatedInfoList
 
 
-def calPosterior(goalPosteriorList):
+def calPosteriorByInterpolation(goalPosteriorList, xInterpolation):
     x = np.divide(np.arange(len(goalPosteriorList) + 1), len(goalPosteriorList))
     goalPosteriorList.append(1)
     y = np.array(goalPosteriorList)
     f = interp1d(x, y, kind='nearest')
-    xnew = np.linspace(0., 1., 30)
-    goalPosterior = f(xnew)
+    goalPosterior = f(xInterpolation)
+    return goalPosterior
+
+
+def calPosteriorByChosenSteps(goalPosteriorList, xnew):
+    goalPosterior = np.array(goalPosteriorList)[xnew]
     return goalPosterior
 
 
@@ -196,12 +200,20 @@ class CalFirstIntentionStepRatio:
         return firstIntentionStepRatio
 
 
+def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
+    trajectory = list(map(tuple, trajectory))[:decisionSteps + 1]
+    initPlayerGrid = trajectory[0]
+    zone = calculateAvoidCommitmnetZone(initPlayerGrid, target1, target2)
+    isStepInZone = [step in zone for step in trajectory[1:]]
+    return np.all(isStepInZone)
+
+
 if __name__ == '__main__':
     gridSize = 15
     noise = 0.067
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, noise, noiseActionSpace)
-    softmaxBeta = 5
+    softmaxBeta = 6
     softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
     goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
@@ -211,14 +223,18 @@ if __name__ == '__main__':
     stdList = []
     statDFList = []
 
-    participants = ['human', 'noise0.067_softmaxBeta5']
+    participants = ['human', 'noise0.067_softmaxBeta6']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
         nubOfSubj = len(df["name"].unique())
         print(participant, nubOfSubj)
 
-        df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+        df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
+
+        # df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+
+        df = df[(df['decisionSteps'] == 4) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
 
         df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
@@ -228,7 +244,9 @@ if __name__ == '__main__':
 
         # df['firstIntentionStepRatio'] = df.apply(lambda x: calFirstIntentionStepRatio(x['goalPosteriorList']), axis=1)
 
-        df['goalPosterior'] = df.apply(lambda x: calPosterior(x['goalPosteriorList']), axis=1)
+        # xnew = np.linspace(0., 1., 15)
+        xnew = np.array([2, 4, 6, 8])
+        df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
         # df['goalPosterior'] = df.apply(lambda x: calInfo(x['expectedInfoList']), axis=1)
 
         # df = df[(df['areaType'] == 'rect')]
@@ -291,10 +309,8 @@ if __name__ == '__main__':
     # print(mannwhitneyu(statDFList[0], statDFList[1]))
     # print(ranksums(statDFList[0], statDFList[1]))
 
-    lables = participants
-    # lables = ['Human', 'Agent']
-
-    xnew = np.linspace(0., 1., 30)
+    # lables = participants
+    lables = ['Human', 'RL Agent']
 
     lineWidth = 1
     for i in range(len(statsList)):

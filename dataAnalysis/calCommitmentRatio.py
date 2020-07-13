@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # statsList = [[0.98, 0.55]]
     # stdList = [[0.0032, 0.0527]]
     xlabels = ['normalTrial', 'specialTrial']
-    lables = participants
+    lables = ['Human', 'RL Agent']
     x = np.arange(len(xlabels))
     totalWidth, n = 0.6, len(participants)
     width = totalWidth / n
@@ -69,5 +69,5 @@ if __name__ == '__main__':
 
     plt.ylim((0, 1))
     plt.legend(loc='best')
-    plt.title('commit to goal ratio')  # Intention Consistency
+    plt.title('Commitment Ratio')  # Intention Consistency
     plt.show()

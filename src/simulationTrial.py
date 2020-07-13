@@ -72,6 +72,7 @@ class NormalTrial():
         trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
+        aimPlayerGridList = []
         leastStep = min([calculateGridDis(playerGrid, beanGrid) for beanGrid in [bean1Grid, bean2Grid]])
         noiseStep = sorted(random.sample(list(range(2, leastStep)), designValues))
         stepCount = 0
@@ -93,10 +94,12 @@ class NormalTrial():
             reactionTime.append(time.get_ticks() - initialTime)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
+            aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
+        results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)
         return results
@@ -118,6 +121,7 @@ class SpecialTrial():
         trajectory = [initialPlayerGrid]
         results = co.OrderedDict()
         aimActionList = list()
+        aimPlayerGridList = []
         firstIntentionFlag = False
         noiseStep = list()
         stepCount = 0
@@ -146,11 +150,13 @@ class SpecialTrial():
             reactionTime.append(time.get_ticks() - initialTime)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
+            aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
 
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
+        results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)
         return results

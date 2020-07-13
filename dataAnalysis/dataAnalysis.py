@@ -1,6 +1,11 @@
 import numpy as np
 
 
+def calculateSoftmaxProbability(acionValues, beta):
+    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
+    return newProbabilityList
+
+
 def calculateSE(data):
     standardError = np.std(data, ddof=1) / np.sqrt(len(data) - 1)
     return standardError
@@ -53,6 +58,17 @@ def calculateAvoidCommitmnetZone(playerGrid, target1, target2):
     else:
         avoidCommitmentZone = []
     return avoidCommitmentZone
+
+
+def calMidPoints(initPlayerGrid, target1, target2):
+    zone = calculateAvoidCommitmnetZoneAll(initPlayerGrid, target1, target2)
+    if zone:
+        playerDisToZoneGrid = [calculateGridDis(initPlayerGrid, zoneGrid) for zoneGrid in zone]
+        midPointIndex = np.argmax(playerDisToZoneGrid)
+        midPoint = zone[midPointIndex]
+    else:
+        midPoint = []
+    return midPoint
 
 
 def calculateAvoidCommitmentRatio(trajectory, zone):
