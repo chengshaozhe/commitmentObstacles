@@ -233,19 +233,20 @@ if __name__ == '__main__':
     from collections import namedtuple
     condition = namedtuple('condition', 'name decisionSteps')
     expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
-    for _ in range(30):
+    for _ in range(10):
         playerGrid, target1, target2, obstacles, decisionSteps, targetDiff = samplePositionFromCondition(expCondition)
-        # obstacles = creatObstacles(pointList)
 
+        # obstacles = creatObstacles(pointList)
+        print(decisionSteps, targetDiff)
         # playerGrid = (1, 1)
         # obstacles = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
         # obstacles = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
         # obstacles = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
         # obstacles = [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)]
 
-        angle = random.choice(rotateAngles)
-        playerGrid, target1, target2 = [rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
-        obstacles = [rotatePoint(point, angle) for point in obstacles]
+        # angle = random.choice(rotateAngles)
+        # playerGrid, target1, target2 = [rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
+        # obstacles = [rotatePoint(point, angle) for point in obstacles]
 
         pause = True
         while pause:

@@ -1,6 +1,7 @@
 import numpy as np
 import pygame as pg
 import random
+from scipy.stats import ttest_ind, entropy
 
 
 def calculateGridDis(grid1, grid2):
@@ -359,4 +360,28 @@ class ModelControllerOnline:
         else:
             action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
         aimePlayerGrid = tuple(np.add(playerGrid, action))
+        return aimePlayerGrid, action
+
+
+class AvoidCommitModel:
+    def __init__(self, softmaxBeta, actionSpace, checkBoundary):
+        self.softmaxBeta = softmaxBeta
+        self.actionSpace = actionSpace
+        self.checkBoundary = checkBoundary
+
+    def __call__(self, playerGrid, targetGrid1, targetGrid2, Q_dict):
+        actionInformationList = []
+        for aimAction in self.actionSpace:
+            aimNextState = tuple(np.add(playerGrid, aimAction))
+
+            nextState = self.checkBoundary(aimNextState)
+            rlActionDict = Q_dict[(nextState, (targetGrid1, targetGrid2))]
+            rlActionValues = list(rlActionDict.values())
+            softmaxRLPolicy = calculateSoftmaxProbability(rlActionValues, self.softmaxBeta)
+
+            actionInformation = entropy(softmaxRLPolicy)
+            actionInformationList.append(actionInformation)
+
+        action = self.actionSpace[np.argmax(actionInformationList)]
+        aimePlayerGrid = self.checkBoundary((tuple(np.add(playerGrid, action))))
         return aimePlayerGrid, action

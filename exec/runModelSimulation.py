@@ -12,7 +12,7 @@ import pandas as pd
 
 from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
-from src.controller import ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
+from src.controller import AvoidCommitModel, ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
 from src.simulationTrial import NormalTrial, SpecialTrial
 from src.experiment import ObstacleModelSimulation
 from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
@@ -146,10 +146,14 @@ def main():
             samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
 
             runVI = RunVI(gridSize, noise, noiseActionSpace)
-            modelController = ModelControllerOnline(softmaxBeta)
+            # modelController = ModelControllerOnline(softmaxBeta)
+
+            actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+            modelController = AvoidCommitModel(softmaxBeta, actionSpace, checkBoundary)
+
             controller = modelController
 
-            renderOn = 0
+            renderOn = 1
             normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 

@@ -221,16 +221,16 @@ class RunVI:
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        # VIZ = 1
-        # if VIZ:
-        #     mapValue = 'V'
-        #     heatMapValue = eval(mapValue)
-        #     y = dict_to_array(heatMapValue)
-        #     y = y.reshape((self.gridSize, self.gridSize))
-        #     df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-        #     sns.heatmap(df, annot=True, fmt='.3f')
-        #     plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
-        #     plt.show()
+        VIZ = 0
+        if VIZ:
+            mapValue = 'V'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            y = y.reshape((self.gridSize, self.gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
+            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+            plt.show()
 
         # print(Q_dict)
         return Q_dict
@@ -239,7 +239,7 @@ class RunVI:
 if __name__ == '__main__':
 
     gridSize = 15
-    noise = 0.1
+    noise = 0.067
     noiseSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
@@ -260,7 +260,12 @@ if __name__ == '__main__':
                      [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
                      [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
 
+    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
+                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
+                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
+
     obstacles_states = random.choice(obstaclesMap1)
+    obstacles_states = speicalObstacleMap[2]
     # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
 
     # sheep_states = ((11, 3), (11, 11))
