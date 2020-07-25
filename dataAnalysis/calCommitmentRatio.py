@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import sys
+sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
 import glob
 DIRNAME = os.path.dirname(__file__)
 import matplotlib.pyplot as plt
@@ -8,7 +10,20 @@ import numpy as np
 from scipy.stats import ttest_ind
 
 from dataAnalysis import calculateFirstIntentionConsistency, calculateFirstIntention, calculateSE
+from machinePolicy.onlineVIWithObstacle import RunVI
+from dataAnalysis import *
 
+
+gridSize = 15
+noise = 0.067
+noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+runVI = RunVI(gridSize, noise, noiseActionSpace)
+softmaxBeta = 5
+softmaxPolicy = SoftmaxPolicy(softmaxBeta)
+initPrior = [0.5, 0.5]
+intentionInfernce = IntentionInfernce(initPrior, softmaxPolicy, runVI)
+inferThreshold = 1
+calFirstIntentionFromPosterior = CalFirstIntentionFromPosterior(inferThreshold)
 
 if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
@@ -28,7 +43,13 @@ if __name__ == '__main__':
         nubOfSubj = len(df["name"].unique())
         print('participant', participant, nubOfSubj)
 
-        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
+        # df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
+        df = df[df['noiseNumber'] == 'special']
+        df['posteriorList'] = df.apply(lambda x: intentionInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+
+        df['firstIntention'] = df.apply(lambda x: calFirstIntentionFromPosterior(x['posteriorList']), axis=1)
+
+        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calIntentionCosistency(x['firstIntention'], x['posteriorList']), axis=1)
 
         dfNormailTrail = df[df['noiseNumber'] != 'special']
         dfSpecialTrail = df[df['noiseNumber'] == 'special']

@@ -32,6 +32,100 @@ def inferGoal(originGrid, aimGrid, targetGridA, targetGridB):
     return goal
 
 
+class GoalInfernce:
+    def __init__(self, initPrior, goalPolicy, runVI):
+        self.initPrior = initPrior
+        self.goalPolicy = goalPolicy
+        self.runVI = runVI
+
+    def __call__(self, trajectory, aimAction, target1, target2, obstacles):
+        trajectory = list(map(tuple, trajectory))
+        goalPosteriorList = []
+        priorGoal = initPrior[0]
+
+        goal = trajectory[-1]
+        targets = list([target1, target2])
+        noGoal = [target for target in targets if target != goal][0]
+
+        QDictGoal = self.runVI(goal, obstacles)
+        QDictNoGoal = self.runVI(noGoal, obstacles)
+        for playerGrid, action in zip(trajectory, aimAction):
+            likelihoodGoal = self.goalPolicy(QDictGoal, playerGrid, goal, obstacles).get(action)
+            likelihoodB = self.goalPolicy(QDictNoGoal, playerGrid, noGoal, obstacles).get(action)
+            posteriorGoal = (priorGoal * likelihoodGoal) / ((priorGoal * likelihoodGoal) + (1 - priorGoal) * likelihoodB)
+            goalPosteriorList.append(posteriorGoal)
+            priorGoal = posteriorGoal
+        goalPosteriorList.insert(0, initPrior[0])
+        return goalPosteriorList
+
+
+class SoftmaxPolicy:
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, QDict, playerGrid, targetGrid):
+        actionDict = QDict[(playerGrid, targetGrid)]
+        actionValues = list(actionDict.values())
+        softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+        softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
+        return softMaxActionDict
+
+
+class IntentionInfernce:
+    def __init__(self, initPrior, goalPolicy, runVI):
+        self.initPrior = initPrior
+        self.goalPolicy = goalPolicy
+        self.runVI = runVI
+
+    def __call__(self, trajectory, aimAction, target1, target2, obstacles):
+        trajectory = list(map(tuple, trajectory))
+        posteriorList = []
+        priorA = self.initPrior[0]
+
+        QDictA = self.runVI(target1, obstacles)
+        QDictB = self.runVI(target2, obstacles)
+        for playerGrid, action in zip(trajectory, aimAction):
+            likelihoodA = self.goalPolicy(QDictA, playerGrid, target1).get(action)
+            likelihoodB = self.goalPolicy(QDictB, playerGrid, target2).get(action)
+            posteriorA = (priorA * likelihoodA) / ((priorA * likelihoodA) + (1 - priorA) * likelihoodB)
+            posteriorList.append([posteriorA, 1 - posteriorA])
+            priorA = posteriorA
+        posteriorList.insert(0, self.initPrior)
+        return posteriorList
+
+
+class CalFirstIntentionFromPosterior:
+    def __init__(self, inferThreshold):
+        self.inferThreshold = inferThreshold
+
+    def __call__(self, posteriorList):
+        for posteriori in posteriorList:
+            if max(posteriori) >= self.inferThreshold:
+                firstIntention = np.argmax(posteriori)
+                return firstIntention
+                break
+        firstIntention = np.argmax(posteriorList[-1])
+        return firstIntention
+
+
+def calIntentionCosistency(firstIntention, posteriorList):
+    finalIntention = np.argmax(posteriorList[-1])
+    cosistency = 1 if firstIntention == finalIntention else 0
+    return cosistency
+
+
+class CalFirstIntentionStep:
+    def __init__(self, inferThreshold):
+        self.inferThreshold = inferThreshold
+
+    def __call__(self, goalPosteriorList):
+        for index, goalPosteriori in enumerate(goalPosteriorList):
+            if goalPosteriori > self.inferThreshold:
+                return index + 1
+                break
+        return len(goalPosteriorList)
+
+
 class SoftmaxGoalPolicy:
     def __init__(self, Q_dict, softmaxBeta):
         self.Q_dict = Q_dict
@@ -39,18 +133,6 @@ class SoftmaxGoalPolicy:
 
     def __call__(self, playerGrid, target):
         actionDict = self.Q_dict[(playerGrid, target)]
-        actionValues = list(actionDict.values())
-        softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
-        softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
-        return softMaxActionDict
-
-
-class SoftmaxPolicy:
-    def __init__(self, softmaxBeta):
-        self.softmaxBeta = softmaxBeta
-
-    def __call__(self, QDict, playerGrid, targetGrid, obstacles):
-        actionDict = QDict[(playerGrid, targetGrid)]
         actionValues = list(actionDict.values())
         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
         softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
