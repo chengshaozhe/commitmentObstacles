@@ -12,11 +12,7 @@ from scipy.stats import ttest_ind, entropy, mannwhitneyu, ranksums
 from scipy.interpolate import interp1d
 from dataAnalysis import calculateSE, calculateAvoidCommitmnetZone
 from machinePolicy.onlineVIWithObstacle import RunVI
-
-
-def calculateSoftmaxProbability(acionValues, beta):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
-    return newProbabilityList
+from dataAnalysis import *
 
 
 class SoftmaxPolicy:
@@ -29,19 +25,6 @@ class SoftmaxPolicy:
         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
         softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
         return softMaxActionDict
-
-
-# class SoftmaxPolicy:
-#     def __init__(self, Q_dict, softmaxBeta):
-#         self.Q_dict = Q_dict
-#         self.softmaxBeta = softmaxBeta
-
-#     def __call__(self, playerGrid, target1):
-#         actionDict = self.Q_dict[(playerGrid, target1)]
-#         actionValues = list(actionDict.values())
-#         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
-#         softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
-#         return softMaxActionDict
 
 
 class BasePolicy:
@@ -213,7 +196,7 @@ if __name__ == '__main__':
     noise = 0.067
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, noise, noiseActionSpace)
-    softmaxBeta = 6
+    softmaxBeta = 8
     softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
     goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
@@ -223,7 +206,7 @@ if __name__ == '__main__':
     stdList = []
     statDFList = []
 
-    participants = ['human', 'noise0.067_softmaxBeta6']
+    participants = ['human', 'noise0.067_softmaxBeta8']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -232,9 +215,10 @@ if __name__ == '__main__':
 
         df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-        # df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+        # df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+        df = df[(df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
-        df = df[(df['decisionSteps'] == 4) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+        # df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
 
         df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
@@ -244,9 +228,12 @@ if __name__ == '__main__':
 
         # df['firstIntentionStepRatio'] = df.apply(lambda x: calFirstIntentionStepRatio(x['goalPosteriorList']), axis=1)
 
-        # xnew = np.linspace(0., 1., 15)
-        xnew = np.array([2, 4, 6, 8])
-        df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
+        xnew = np.linspace(0., 1., 15)
+        df['goalPosterior'] = df.apply(lambda x: calPosteriorByInterpolation(x['goalPosteriorList'], xnew), axis=1)
+
+        # xnew = np.array([2, 4, 6, 8])
+        # df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
+
         # df['goalPosterior'] = df.apply(lambda x: calInfo(x['expectedInfoList']), axis=1)
 
         # df = df[(df['areaType'] == 'rect')]

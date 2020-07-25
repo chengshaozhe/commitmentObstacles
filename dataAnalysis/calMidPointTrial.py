@@ -10,6 +10,8 @@ from scipy.stats import ttest_ind, entropy
 from scipy.interpolate import interp1d
 from sklearn.metrics import mutual_info_score as KL
 from dataAnalysis import calculateSE, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints
+from statsmodels.stats.anova import anova_lm
+from statsmodels.formula.api import ols
 
 
 def calAvoidPoints(playerGrid, decisionSteps):
@@ -33,9 +35,8 @@ def isGridsALine(playerGrid, targetGrid):
         return False
 
 
-def isTrajHasAvoidPoints(trajectory, aimAction, playerGrid, target1, target2, decisionSteps, conditionName):
+def isTrajHasAvoidPoints(trajectory, aimAction, initPlayerGrid, target1, target2, decisionSteps, conditionName):
     trajectory = list(map(tuple, trajectory))
-    initPlayerGrid = trajectory[0]
     if conditionName == 'expCondition':
         avoidPoint = calAvoidPoints(initPlayerGrid, decisionSteps)
         hasMidPoint = 1 if avoidPoint in trajectory else 0
@@ -66,11 +67,13 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsListAll = []
     stdListAll = []
-
+    statDataAll = []
     participants = ['human', 'noise0.067_softmaxBeta8']
     for participant in participants:
         statsList = []
         stdList = []
+        statData = []
+
         for decisionStep in [2, 4, 6]:
             dataPath = os.path.join(resultsPath, participant)
             df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -82,9 +85,9 @@ if __name__ == '__main__':
 
             df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] != 0) & (df['conditionName'] == 'expCondition')]
+            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
-            dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['noisePoint'] == '[]')]
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['noisePoint'] == '[]')]
 
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
@@ -95,6 +98,8 @@ if __name__ == '__main__':
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition') & (df['isDecisionStepInZone'] == 1)]
 
             dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
+
+            # dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['aimPlayerGridList']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
 
             # df = df[(df['decisionSteps'] == 6) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
@@ -151,17 +156,41 @@ if __name__ == '__main__':
             print('')
 
             stats = statDF.columns
+            statData.append(statDF['avoidCommitPoint'])
 
             statsList.append([np.mean(statDF[stat]) for stat in stats][0])
             stdList.append([calculateSE(statDF[stat]) for stat in stats][0])
         statsListAll.append(statsList)
         stdListAll.append(stdList)
+        statDataAll.append(statData)
 
     print(statsListAll)
     print(stdListAll)
 
-    labels = participants
-    # labels = ['Human', 'RL Agent']
+    print(ttest_ind(statDataAll[0][2], statDataAll[1][2]))
+
+    # formula = "avoidCommitPoint~C(Model)+C(DecisionStep)+C(Model):C(DecisionStep)"
+
+    # avoidCommitPointList = [np.concatenate(statData) for statData in statDataAll][0]
+    # print(avoidCommitPointList)
+
+    # numConditions = int(len(avoidCommitPointList) / 4)
+    # ModelList = [['human'] * numConditions + ['RL'] * numConditions] * 2
+    # ModelList = np.array(ModelList).flatten()
+    # DecisionStepList = ['2'] * int(numConditions * 2) + ['4'] * int(numConditions * 2)
+    # DecisionStepList = np.array(DecisionStepList).flatten()
+    # statDict = {'Model': ModelList, 'DecisionStep': DecisionStepList, 'avoidCommitPoint': avoidCommitPointList}
+
+    # print(len(avoidCommitPointList), len(ModelList), len(DecisionStepList))
+    # statdf = pd.DataFrame(statDict)
+
+    # print(statdf)
+    # statdf.to_csv('statdf.csv')
+    # anova_results = anova_lm(ols(formula, statdf).fit())
+    # print(anova_results)
+
+    # labels = participants
+    labels = ['Human', 'RL Agent']
     # xlabels = list(statDF.columns)
     xlabels = [2, 4, 6]
 

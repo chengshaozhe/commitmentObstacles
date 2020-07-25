@@ -212,7 +212,7 @@ class RunVI:
         R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        gamma = 0.99
+        gamma = 0.9
         valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
         V = valueIteration(S, A, T, R)
         V_arr = V_dict_to_array(V, S)
@@ -264,8 +264,8 @@ if __name__ == '__main__':
                           [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
                           [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
 
-    obstacles_states = random.choice(obstaclesMap1)
-    obstacles_states = speicalObstacleMap[2]
+    # obstacles_states = random.choice(obstaclesMap1)
+    obstacles_states = obstaclesMap3[2]
     # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
 
     # sheep_states = ((11, 3), (11, 11))

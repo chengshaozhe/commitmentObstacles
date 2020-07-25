@@ -32,6 +32,31 @@ def inferGoal(originGrid, aimGrid, targetGridA, targetGridB):
     return goal
 
 
+class SoftmaxGoalPolicy:
+    def __init__(self, Q_dict, softmaxBeta):
+        self.Q_dict = Q_dict
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, target):
+        actionDict = self.Q_dict[(playerGrid, target)]
+        actionValues = list(actionDict.values())
+        softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+        softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
+        return softMaxActionDict
+
+
+class SoftmaxPolicy:
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, QDict, playerGrid, targetGrid, obstacles):
+        actionDict = QDict[(playerGrid, targetGrid)]
+        actionValues = list(actionDict.values())
+        softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+        softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
+        return softMaxActionDict
+
+
 def creatRect(coor1, coor2):
     vector = np.array(list(zip(coor1, coor2)))
     vector.sort(axis=1)
