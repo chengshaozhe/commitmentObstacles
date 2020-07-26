@@ -48,8 +48,8 @@ def main():
     playerRadius = 10
     textColorTuple = (255, 50, 50)
 
-    testTrialImage = pg.image.load(os.path.join(picturePath, 'testTrial.png'))
-    formalTrialImage = pg.image.load(os.path.join(picturePath, 'formalTrial.png'))
+    testTrialImage = pg.image.load(os.path.join(picturePath, 'testTrialTime.png'))
+    formalTrialImage = pg.image.load(os.path.join(picturePath, 'formalTrialTime.png'))
     finishImage = pg.image.load(os.path.join(picturePath, 'finish.png'))
     restImage = pg.image.load(os.path.join(picturePath, 'rest.png'))
 
@@ -68,17 +68,17 @@ def main():
     intentionDis = [3, 4, 5]
     rotateAngles = [0, 90, 180, 270]
     decisionSteps = [2, 4, 6, 10]
-    targetDiffs = [0, 2, 4]
+    targetDiffs = [0, 0, 1, 2]
 
-    obstaclesMap1 = [(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]
-    obstaclesMap2 = [(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]
-    obstaclesMap3 = [(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]
+    obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (2, 6), (4, 2), (5, 2), (6, 2)]]
+    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]]
+    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)]]
 
-    speicalObstacleMap = [(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]
+    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)]]
     obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
     obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
 
-    numBlocks = 5
+    numBlocks = 3
     expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
 
     random.shuffle(expDesignValues)
@@ -112,6 +112,7 @@ def main():
     if len(conditionList) != len(noiseDesignValues):
         raise Exception("unmatch condition design")
 
+    print(len(conditionList))
 # deubg
     # expDesignValues = [specialDesign] * 10
     # noiseDesignValues = ['special'] * 10
@@ -122,7 +123,7 @@ def main():
     # experimentValues["name"] = input("Please enter your name:").capitalize()
     experimentValues["name"] = 'test'
 
-    writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
+    writerPath = os.path.join(resultsPath, 't' + experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
 
     baseLineWriterPath = os.path.join(resultsPath, 'baseLine' + experimentValues["name"] + '.csv')
@@ -153,7 +154,7 @@ def main():
     singleGoalExperiment = SingleGoalExperiment(singleGoalTrial, baseLineWriter, experimentValues, creatSingleGoalMap)
 
     baseLineTrialCondition = [6, 8, 10, 12, 14]
-    numBaseLineTrialBlock = 5
+    numBaseLineTrialBlock = 2
     numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
     baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
     baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock

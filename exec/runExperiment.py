@@ -160,7 +160,7 @@ def main():
     singleGoalExperiment = SingleGoalExperiment(singleGoalTrial, baseLineWriter, experimentValues, creatSingleGoalMap)
 
     baseLineTrialCondition = [6, 8, 10, 12, 14]
-    numBaseLineTrialBlock = 3
+    numBaseLineTrialBlock = 2
     numBaseLineTrial = len(baseLineTrialCondition) * numBaseLineTrialBlock
     baseLineNoiseDesignValues = np.array([random.choice(noiseCondition) for _ in range(numBaseLineTrial)]).flatten().tolist()
     baseLineConditionList = baseLineTrialCondition * numBaseLineTrialBlock

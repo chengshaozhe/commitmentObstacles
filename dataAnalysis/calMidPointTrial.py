@@ -68,7 +68,7 @@ if __name__ == '__main__':
     statsListAll = []
     stdListAll = []
     statDataAll = []
-    participants = ['human', 'noise0.067_softmaxBeta8']
+    participants = ['humanOld', 'noise0.067_softmaxBeta8']
     for participant in participants:
         statsList = []
         stdList = []

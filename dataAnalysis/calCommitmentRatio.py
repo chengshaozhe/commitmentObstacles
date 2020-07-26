@@ -43,13 +43,14 @@ if __name__ == '__main__':
         nubOfSubj = len(df["name"].unique())
         print('participant', participant, nubOfSubj)
 
-        # df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
-        df = df[df['noiseNumber'] == 'special']
-        df['posteriorList'] = df.apply(lambda x: intentionInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
 
-        df['firstIntention'] = df.apply(lambda x: calFirstIntentionFromPosterior(x['posteriorList']), axis=1)
+        # df = df[df['noiseNumber'] == 'special']
+        # df['posteriorList'] = df.apply(lambda x: intentionInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
-        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calIntentionCosistency(x['firstIntention'], x['posteriorList']), axis=1)
+        # df['firstIntention'] = df.apply(lambda x: calFirstIntentionFromPosterior(x['posteriorList']), axis=1)
+
+        # df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calIntentionCosistency(x['firstIntention'], x['posteriorList']), axis=1)
 
         dfNormailTrail = df[df['noiseNumber'] != 'special']
         dfSpecialTrail = df[df['noiseNumber'] == 'special']
