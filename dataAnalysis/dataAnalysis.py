@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def stableSoftmax(x):
+    max_x = np.max(x)
+    exp_x = np.exp(x - max_x)
+    sum_exp_x = np.sum(exp_x)
+    sm_x = exp_x / sum_exp_x
+    return sm_x
+
+
 def calculateSoftmaxProbability(acionValues, beta):
     newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
     return newProbabilityList
