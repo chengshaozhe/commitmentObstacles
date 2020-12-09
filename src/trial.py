@@ -110,7 +110,7 @@ class NormalTrial():
         self.normalNoise = normalNoise
         self.checkBoundary = checkBoundary
 
-    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, designValues):
+    def __call__(self, bean1Grid, bean2Grid, playerGrid, obstacles, designValues, decisionSteps):
         initialPlayerGrid = playerGrid
         reactionTime = list()
         trajectory = [initialPlayerGrid]
@@ -118,7 +118,7 @@ class NormalTrial():
         aimActionList = list()
         aimPlayerGridList = []
         leastStep = min([calculateGridDis(playerGrid, beanGrid) for beanGrid in [bean1Grid, bean2Grid]])
-        noiseStep = sorted(random.sample(list(range(2, leastStep)), designValues))
+        noiseStep = sorted(random.sample(list(range(1, leastStep)), designValues))
 
         stepCount = 0
         goalList = list()

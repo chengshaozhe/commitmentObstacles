@@ -64,13 +64,23 @@ class CreatRectMap():
         self.rotatePoint = rotatePoint
 
     def __call__(self, width, height, distance, decisionSteps, targetDiffs):
-        playerGrid = (random.randint(1, max(1, self.dimension - distance - width - targetDiffs - 2)), random.randint(1, max(1, self.dimension - distance - height - targetDiffs - 2)))
+        playerGrid = (random.randint(2, max(1, self.dimension - distance - width - targetDiffs - 2)), random.randint(2, max(1, self.dimension - distance - height - targetDiffs - 2)))
 
-        target1 = (playerGrid[0] + width + distance + targetDiffs, playerGrid[1] + height)
-        target2 = (playerGrid[0] + width, playerGrid[1] + height + distance)
+        targetP1 = (playerGrid[0] + width + distance + targetDiffs, playerGrid[1] + height)
+        targetP2 = (playerGrid[0] + width, playerGrid[1] + height + distance)
+        targetList1 = [targetP1, targetP2]
+
+        targetP3 = (playerGrid[0] + height, playerGrid[1] + width + distance + targetDiffs)
+        targetP4 = (playerGrid[0] + height + distance, playerGrid[1] + width)
+        targetList2 = [targetP3, targetP4]
+
+        target1, target2 = random.choice([targetList1, targetList2])
 
         obstaclesBase = random.choice(self.obstaclesMaps[decisionSteps])
-        transformBase = (playerGrid[0] - 1, playerGrid[1] - 1)
+        initBase = (1, 1)
+        if decisionSteps == 0:
+            initBase = (2, 1)
+        transformBase = (playerGrid[0] - initBase[0], playerGrid[1] - initBase[1])
         obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
 
         angle = random.choice(self.rotateAngles)
@@ -88,24 +98,25 @@ class CreatLineMap():
         self.isInBoundary = isInBoundary
 
     def __call__(self, width, height, distance, decisionSteps, targetDiffs):
+        distance = distance + 1
         targetDiff = random.choice([targetDiffs / 2, -targetDiffs / 2])
         playerGrid = (math.floor(self.dimension / 2), random.randint(1, 2))
         target1 = (playerGrid[0] - distance - targetDiff, playerGrid[1] + width + height - 1)
         target2 = (playerGrid[0] + distance - targetDiff, playerGrid[1] + width + height - 1)
 
         obstacles = [(playerGrid[0] - 1, playerGrid[1]), (playerGrid[0] + 1, playerGrid[1])]
-        for i in range(width + height - 1):
+        for i in range(1, width + height - 1):
             obstacles.append((obstacles[0][0], obstacles[0][1] + i))
             obstacles.append((obstacles[1][0], obstacles[1][1] + i))
 
-        if decisionSteps < 10:
-            obstaclesAtdecisionSteps = [(playerGrid[0] - 1, playerGrid[1] + decisionSteps), (playerGrid[0] + 1, playerGrid[1] + decisionSteps)]
-            [obstacles.remove(obstaclesAtdecisionStep) for obstaclesAtdecisionStep in obstaclesAtdecisionSteps]
+        obstaclesAtdecisionSteps = [(playerGrid[0] - 1, playerGrid[1] + decisionSteps), (playerGrid[0] + 1, playerGrid[1] + decisionSteps)]
+        [obstacles.remove(obstaclesAtdecisionStep) for obstaclesAtdecisionStep in obstaclesAtdecisionSteps]
 
         angle = random.choice(self.rotateAngles)
         playerGrid, target1, target2 = [self.rotatePoint(point, angle) for point in [playerGrid, target1, target2]]
         obstacles = [self.rotatePoint(point, angle) for point in obstacles]
 
+        print(decisionSteps)
         return playerGrid, target1, target2, obstacles
 
 
@@ -119,6 +130,48 @@ class CreatSingleGoalMap:
         possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) == distance, allGrids))
         targetGrid = random.choice(possibleGrids)
         return playerGrid, targetGrid
+
+
+class RandomWorld():
+    def __init__(self, bounds, minDistanceBetweenGrids, maxDistanceBerweenGrids, numOfObstacles):
+        self.bounds = bounds
+        self.minDistanceBetweenGrids = minDistanceBetweenGrids
+        self.maxDistanceBerweenGrids = maxDistanceBerweenGrids
+        self.numOfObstacles = numOfObstacles
+
+    def __call__(self):
+        playerGrid = (random.randint(self.bounds[0], self.bounds[2]),
+                      random.randint(self.bounds[1], self.bounds[3]))
+        [meshGridX, meshGridY] = np.meshgrid(range(self.bounds[0], self.bounds[2] + 1, 1),
+                                             range(self.bounds[1], self.bounds[3] + 1, 1))
+        distanceOfPlayerGrid = abs(meshGridX - playerGrid[0]) + abs(meshGridY - playerGrid[1])
+        target1GridArea = np.where(distanceOfPlayerGrid > self.minDistanceBetweenGrids)
+        target1GridIndex = random.randint(0, len(target1GridArea[0]) - 1)
+        target1Grid = tuple([meshGridX[target1GridArea[0][target1GridIndex]][target1GridArea[1][target1GridIndex]], meshGridY[target1GridArea[0][target1GridIndex]][target1GridArea[1][target1GridIndex]]])
+        distanceOfTarget1Grid = abs(meshGridX - target1Grid[0]) + abs(meshGridY - target1Grid[1])
+        target2GridArea = np.where((distanceOfPlayerGrid > self.minDistanceBetweenGrids) * (distanceOfTarget1Grid > self.minDistanceBetweenGrids) * (distanceOfTarget1Grid < self.maxDistanceBerweenGrids) == True)
+        target2GridIndex = random.randint(0, len(target2GridArea[0]) - 1)
+        target2Grid = tuple([meshGridX[target2GridArea[0][target2GridIndex]][target2GridArea[1][target2GridIndex]], meshGridY[target2GridArea[0][target2GridIndex]][target2GridArea[1][target2GridIndex]]])
+        vectorBetweenTarget1AndPlayer = np.array(target2Grid) - np.array(playerGrid)
+        vectorBetweenTarget2AndPlayer = np.array(target1Grid) - np.array(playerGrid)
+
+        dimension = max(self.bounds)
+        allGrids = tuple(it.product(range(dimension), range(dimension)))
+        possibleGrids = list(filter(lambda x: x not in [playerGrid, target1Grid, target2Grid], allGrids))
+
+        obstacles = random.sample(possibleGrids, self.numOfObstacles)
+        return playerGrid, target1Grid, target2Grid, obstacles
+
+
+def calculateMaxDistanceOfGrid(bounds):
+    [meshGridX, meshGridY] = np.meshgrid(range(bounds[0], bounds[2] + 1, 1),
+                                         range(bounds[1], bounds[3] + 1, 1))
+    allDistance = np.array([abs(meshGridX - bounds[0]) + abs(meshGridY - bounds[1]),
+                            abs(meshGridX - bounds[2]) + abs(meshGridY - bounds[1]),
+                            abs(meshGridX - bounds[0]) + abs(meshGridY - bounds[3]),
+                            abs(meshGridX - bounds[2]) + abs(meshGridY - bounds[3])])
+    maxDistance = np.min(allDistance.max(0))
+    return maxDistance
 
 
 class SamplePositionFromCondition:
@@ -136,6 +189,126 @@ class SamplePositionFromCondition:
             playerGrid, target1, target2, obstacles = self.creatLineMap(width, height, distance, decisionSteps, targetDiff)
         self.index += 1
         return playerGrid, target1, target2, obstacles, decisionSteps, targetDiff
+
+
+def calTargetPosByTargetDiff(targetDiff, crossPoint, targetDisToCrossPointList):
+
+    targetDiff = random.choice([targetDiff, -targetDiff])
+    if targetDiff == 0:
+        targetDisToCrossPoint1 = targetDisToCrossPoint2 = random.choice(targetDisToCrossPointList)
+    if targetDiff == -1:
+        targetDisToCrossPoints = [targetDisToCrossPointList[:2], targetDisToCrossPointList[1:]]
+        targetDisToCrossPoint1, targetDisToCrossPoint2 = random.choice(targetDisToCrossPoints)
+    if targetDiff == 1:
+        targetDisToCrossPointListReveser = targetDisToCrossPointList[::-1]
+        targetDisToCrossPoints = [targetDisToCrossPointList[:2], targetDisToCrossPointList[1:]]
+        targetDisToCrossPoint1, targetDisToCrossPoint2 = random.choice(targetDisToCrossPoints)
+    if targetDiff == -2:
+        targetDisToCrossPoint1 = targetDisToCrossPointList[0]
+        targetDisToCrossPoint2 = targetDisToCrossPointList[-1]
+    if targetDiff == 2:
+        targetDisToCrossPoint1 = targetDisToCrossPointList[-1]
+        targetDisToCrossPoint2 = targetDisToCrossPointList[0]
+
+    target1Pos = (crossPoint[0] + targetDisToCrossPoint1, crossPoint[1])
+    target2Pos = (crossPoint[0], crossPoint[1] + targetDisToCrossPoint2)
+
+    return target1Pos, target2Pos
+
+
+def creatRect(coor1, coor2):
+    vector = np.array(list(zip(coor1, coor2)))
+    vector.sort(axis=1)
+    rect = [(i, j) for i in range(vector[0][0], vector[0][1] + 1) for j in range(vector[1][0], vector[1][1] + 1)]
+    return rect
+
+
+def calculateInsideArea(playerGrid, target1, target2):
+    rect1 = creatRect(playerGrid, target1)
+    rect2 = creatRect(playerGrid, target2)
+    insideArea = list(set(rect1).union(set(rect2)))
+    return insideArea
+
+
+class CreatMap():
+    def __init__(self, rotateAngles, dimension, rotatePoint, numOfObstacles):
+        self.rotateAngles = rotateAngles
+        self.dimension = dimension
+        self.rotatePoint = rotatePoint
+        self.numOfObstacles = numOfObstacles
+
+    def __call__(self, condition, targetDiff):
+
+        if condition.name == 'randomCondition':
+            # playerGrid, target1, target2, obstacles = condition.creatMap()
+            avoidCommitPoint = crossPoint = (0, 0)
+
+            playerGrid = (random.randint(1, max(1, self.dimension - 1)), random.randint(1, max(1, self.dimension - 1)))
+            allGrids = tuple(it.product(range(self.dimension), range(self.dimension)))
+            possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) >= condition.minSteps, allGrids))
+            target1 = random.choice(possibleGrids)
+
+            possibleGrids2 = list(filter(lambda x: calculateGridDis(playerGrid, x) - calculateGridDis(playerGrid, target1) == random.choice(condition.controlDiffList), possibleGrids))
+
+            possibleGrids2 = list(filter(lambda x: calculateGridDis(target1, x) > condition.minDistanceBetweenTargets, possibleGrids2))
+            target2 = random.choice(possibleGrids2)
+
+            possibleObsGrids = list(filter(lambda x: x not in [playerGrid, target1, target2], allGrids))
+            obstacles = random.sample(possibleObsGrids, self.numOfObstacles)
+
+            # possibleTargetGrids = list(it.product(range(3, self.dimension - 1), range(3, self.dimension - 1)))
+            # target1, target2 = random.sample(possibleTargetGrids, 2)
+            # playerGrid = (random.randint(0, 3), random.randint(0, 3))
+            # crossPoint = (7, 7)
+            # targetDisToCrossPoint1 = random.choice(condition.targetDisToCrossPointList)
+            # targetDisToCrossPoint2 = targetDisToCrossPoint1 + abs(random.choice(condition.targetDisToCrossPointList))
+
+            # target1 = (crossPoint[0] + targetDisToCrossPoint1, crossPoint[1])
+            # target2 = (crossPoint[0], crossPoint[1] + targetDisToCrossPoint2)
+
+            # allGrids = tuple(it.product(range(self.dimension - 1), range(self.dimension - 1)))
+            # possibleGrids = list(filter(lambda x: x not in [playerGrid, target1, target2], allGrids))
+            # obstacles = random.sample(possibleGrids, self.numOfObstacles)
+        else:
+            # random init player
+            # initBase = condition.initAgent
+            # maxBound = max(1, self.dimension - max(condition.targetDisToCrossPoint) - 1 - max(condition.crossPoint) - 1)
+            # playerGrid = (random.randint(1, maxBound), random.randint(1, maxBound))
+
+            # transformBase = (playerGrid[0] - initBase[0], playerGrid[1] - initBase[1])
+            # obstaclesBase = condition.obstacles
+            # obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
+            # avoidCommitPoint, crossPoint = [tuple(map(sum, zip(point, transformBase))) for point in [condition.avoidCommitPoint, condition.crossPoint]]
+            if isinstance(targetDiff, int):
+                playerGrid = condition.initAgent
+                avoidCommitPoint, crossPoint = [condition.avoidCommitPoint, condition.crossPoint]
+                target1, target2 = calTargetPosByTargetDiff(targetDiff, crossPoint, condition.targetDisToCrossPoint)
+                fixedObstacles = condition.fixedObstacles
+                allGrids = tuple(it.product(range(self.dimension - 1), range(self.dimension - 1)))
+                insideArea = calculateInsideArea(playerGrid, target1, target2)
+                possibleObsGrids = list(filter(lambda x: x not in insideArea, allGrids))
+                addObstacles = random.sample(possibleObsGrids, self.numOfObstacles - len(fixedObstacles))
+                obstacles = fixedObstacles + addObstacles
+            else:
+                # need fix
+                playerGrid = crossPoint = avoidCommitPoint = condition.initAgent
+                targetDisToCrossPoint = [10, 11, 12]
+                targetDiff = random.choice([0, 1, 2])
+                target1, target2 = calTargetPosByTargetDiff(targetDiff, crossPoint, targetDisToCrossPoint)
+                fixedObstacles = condition.fixedObstacles
+                allGrids = tuple(it.product(range(self.dimension - 1), range(self.dimension - 1)))
+
+                target1S, target2S = calTargetPosByTargetDiff(0, condition.crossPoint, condition.targetDisToCrossPoint)
+                insideArea = calculateInsideArea(playerGrid, target1S, target2S)
+                possibleObsGrids = list(filter(lambda x: x not in insideArea+[playerGrid, target1, target2], allGrids))
+                addObstacles = random.sample(possibleObsGrids, self.numOfObstacles - len(fixedObstacles))
+                obstacles = fixedObstacles + addObstacles
+
+        angle = random.choice(self.rotateAngles)
+        playerGrid, target1, target2, avoidCommitPoint, crossPoint = [self.rotatePoint(point, angle) for point in [playerGrid, target1, target2, avoidCommitPoint, crossPoint]]
+        obstacles = [self.rotatePoint(point, angle) for point in obstacles]
+
+        return playerGrid, target1, target2, obstacles, avoidCommitPoint, crossPoint
 
 
 class RotatePoint:
@@ -232,7 +405,7 @@ if __name__ == '__main__':
 # sample
     from collections import namedtuple
     condition = namedtuple('condition', 'name decisionSteps')
-    expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
+    expCondition = condition(name='expCondition', decisionSteps=decisionSteps[: -1])
     for _ in range(10):
         playerGrid, target1, target2, obstacles, decisionSteps, targetDiff = samplePositionFromCondition(expCondition)
 

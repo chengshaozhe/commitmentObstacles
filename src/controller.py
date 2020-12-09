@@ -83,6 +83,13 @@ def calculateAvoidCommitmnetZoneAll(playerGrid, target1, target2):
     return avoidCommitmentZone
 
 
+def calculateInsideArea(playerGrid, target1, target2):
+    rect1 = creatRect(playerGrid, target1)
+    rect2 = creatRect(playerGrid, target2)
+    insideArea = list(set(rect1).union(set(rect2)))
+    return insideArea
+
+
 def calMidPoints(initPlayerGrid, target1, target2):
     zone = calculateAvoidCommitmnetZoneAll(initPlayerGrid, target1, target2)
     if zone:
@@ -225,12 +232,15 @@ class HumanController():
         pause = True
         while pause:
             for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
                 if event.type == pg.KEYDOWN:
                     if event.key in self.actionDict.keys():
                         action = self.actionDict[event.key]
                         aimePlayerGrid = tuple(np.add(playerGrid, action))
                         pause = False
                     if event.key == pg.K_ESCAPE:
+                        pg.quit()
                         exit()
         return aimePlayerGrid, action
 
@@ -259,7 +269,34 @@ class ModelController():
                 list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
         aimePlayerGrid = tuple(np.add(playerGrid, action))
         # pg.time.delay(500)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
+                    exit()
         return aimePlayerGrid, action
+
+
+class SampleSoftmaxAction:
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, Q_dict, playerGrid):
+        actionDict = Q_dict[playerGrid]
+        actionKeys = list(Q_dict[playerGrid].keys())
+        actionValues = list(Q_dict[playerGrid].values())
+
+        if self.softmaxBeta < 0:
+            action = chooseMaxAcion(actionDict)
+        else:
+            softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+            action = actionKeys[
+                list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
+
+        aimPlayerGrid = tuple(np.add(playerGrid, action))
+        return aimPlayerGrid, action
 
 
 def chooseMaxAcion(actionDict):
@@ -286,25 +323,16 @@ def calBasePolicy(posteriorList, actionProbList):
 class InferGoalPosterior:
     def __init__(self, runVI, commitBeta):
         self.runVI = runVI
-        self.commitBeta = commitBeta
+        self.softmaxBeta = softmaxBeta
 
     def __call__(self, playerGrid, action, target1, target2, priorList):
         targets = list([target1, target2])
-
         goalPolicy = [self.runVI(goal, obstacles) for goal in targets]
 # todo
-        likelihoodList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
+        actionValueList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
+        likelihoodList = calculateSoftmaxProbability(actionValueList, self.softmaxBeta)
 
         posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
-
-        evidence = sum(posteriorUnnormalized)
-        posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
-
-        diff = abs(posteriorList[0] - posteriorList[1])
-        if diff < self.commitBeta / 10:
-            posteriorUnnormalized = calculateSoftmaxProbability(posteriorUnnormalized, 1 / self.commitBeta)
-        else:
-            posteriorUnnormalized = calculateSoftmaxProbability(posteriorUnnormalized, self.commitBeta)
         evidence = sum(posteriorUnnormalized)
         posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
 

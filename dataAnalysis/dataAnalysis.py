@@ -14,6 +14,11 @@ def calculateSoftmaxProbability(acionValues, beta):
     return newProbabilityList
 
 
+def calculateSD(data):
+    standardD = np.std(data, ddof=1)
+    return standardD
+
+
 def calculateSE(data):
     standardError = np.std(data, ddof=1) / np.sqrt(len(data) - 1)
     return standardError

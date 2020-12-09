@@ -9,7 +9,7 @@ plt.style.use('ggplot')
 import numpy as np
 from scipy.stats import ttest_ind
 
-from dataAnalysis import calculateFirstIntentionConsistency, calculateFirstIntention, calculateSE
+from dataAnalysis import *
 from machinePolicy.onlineVIWithObstacle import RunVI
 from dataAnalysis import *
 
@@ -17,7 +17,11 @@ from dataAnalysis import *
 gridSize = 15
 noise = 0.067
 noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-runVI = RunVI(gridSize, noise, noiseActionSpace)
+gamma = 0.9
+goalReward = [10]
+actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+
+runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 softmaxBeta = 5
 softmaxPolicy = SoftmaxPolicy(softmaxBeta)
 initPrior = [0.5, 0.5]
@@ -33,7 +37,7 @@ if __name__ == '__main__':
     statData = []
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
-    participants = ['human', 'noise0.067_softmaxBeta8']
+    participants = ['human', 'noise0.067_softmaxBeta2.5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         # dataPath = resultsPath
@@ -74,7 +78,7 @@ if __name__ == '__main__':
     # statsList = [[0.98, 0.55]]
     # stdList = [[0.0032, 0.0527]]
     xlabels = ['normalTrial', 'specialTrial']
-    lables = ['Human', 'RL Agent']
+    lables = ['Human', 'Human No Time pressure ', 'RL Agent']
     x = np.arange(len(xlabels))
     totalWidth, n = 0.6, len(participants)
     width = totalWidth / n

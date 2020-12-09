@@ -132,6 +132,7 @@ class ValueIteration():
             delta = np.array([abs(V[s] - V_init[s]) for s in S_iter])
             # if np.all(delta < epsilon * (1 - gamma) / gamma):
             if np.all(delta < self.epsilon):
+                # print(i)
                 break
         return V
 
@@ -174,52 +175,53 @@ def Q_from_V(s, a, T=None, R=None, V=None, gamma=None):
                 for (s_n, p) in T[s][a].iteritems()])
 
 
-class RunVI:
-    def __init__(self, gridSize, noise, noiseSpace):
+class RunVIMDP:
+    def __init__(self, gridSize, actionSpace, noiseSpace, noise, gamma, goalReward):
         self.gridSize = gridSize
-        self.noise = noise
+        self.actionSpace = actionSpace
         self.noiseSpace = noiseSpace
+        self.noise = noise
+        self.gamma = gamma
+        self.goalReward = goalReward
 
-    def __call__(self, sheep_states, obstacles_states):
+    def __call__(self, goalStates, obstacles_states):
         env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
 
-        goalRewardList = [10, 10]
-        terminalValue = {s: goalReward for s, goalReward in zip(sheep_states, goalRewardList)}
+        terminalValue = {s: goalReward for s, goalReward in zip(goalStates, self.goalReward)}
 
-        if isinstance(sheep_states[0], int):
-            terminalValue = {s: goalReward for s, goalReward in zip([sheep_states], goalRewardList)}
+        if isinstance(goalStates[0], int):
+            terminalValue = {s: goalReward for s, goalReward in zip([goalStates], self.goalReward)}
 
         env.add_obstacles(list(obstacles_states))
         env.add_feature_map("goal", terminalValue, default=0)
-        env.add_terminals([sheep_states])
+        env.add_terminals([goalStates])
 
         S = tuple(it.product(range(env.nx), range(env.ny)))
-        A = ((1, 0), (0, 1), (-1, 0), (0, -1))
+        A = self.actionSpace
 
         mode = 1 - self.noise
-        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=[sheep_states], is_valid=env.is_state_valid, mode=mode)
+        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=[goalStates], is_valid=env.is_state_valid, mode=mode)
 
-        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=sheep_states, is_valid=env.is_state_valid, noise=self.noise)
+        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=goalStates, is_valid=env.is_state_valid, noise=self.noise)
 
         T = {s: {a: transition_function(s, a) for a in A} for s in S}
         T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        stepCost = - goalRewardList[0] / (self.gridSize * 2)
-        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=sheep_states)
+        stepCost = - self.goalReward[0] / (self.gridSize * 2)
+        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=goalStates)
 
         R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
         R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        gamma = 0.9
-        valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=sheep_states, obstacles=obstacles_states)
+        valueIteration = ValueIteration(self.gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles_states)
         V = valueIteration(S, A, T, R)
         V_arr = V_dict_to_array(V, S)
         # print(V)
 
-        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
-        Q_dict = {(s, sheep_states): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=self.gamma)
+        Q_dict = {(s, goalStates): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
         VIZ = 0
         if VIZ:
@@ -229,7 +231,138 @@ class RunVI:
             y = y.reshape((self.gridSize, self.gridSize))
             df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
             sns.heatmap(df, annot=True, fmt='.3f')
-            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, sheep_states, self.noise, goalRewardList))
+            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
+            plt.show()
+
+        # print(Q_dict)
+        return S, A, T, R, self.gamma, Q_dict
+
+
+def calculateSoftmaxProbability(acionValues, beta):
+    expont = np.multiply(beta, acionValues)
+    newProbabilityList = list(np.divide(np.exp(expont), np.sum(np.exp(expont))))
+    return newProbabilityList
+
+
+class SoftmaxGoalPolicy:
+    def __init__(self, Q_dict, softmaxBeta):
+        self.Q_dict = Q_dict
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, target):
+        actionDict = self.Q_dict[(playerGrid, target)]
+        actions = list(actionDict.keys())
+        actionValues = list(actionDict.values())
+        softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+        softMaxActionDict = {action: prob for action, prob in zip(actions, softmaxProbabilityList)}
+        return softMaxActionDict
+
+
+class RunIntentionModel:
+    def __init__(self, runVI, softmaxBeta, intentionInfoScale):
+        self.softmaxBeta = softmaxBeta
+        self.runVI = runVI
+        self.intentionInfoScale = intentionInfoScale
+
+    def __call__(self, targetA, targetB):
+        S, A, transitionTable, rewardA, gamma, Q_dictA = self.runVI(targetA)
+        S, A, transitionTable, rewardB, gamma, Q_dictB = self.runVI(targetB)
+        getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
+        getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
+        policyA = {state: getPolicyA(state, targetA) for state in transitionTable.keys()}
+        policyB = {state: getPolicyB(state, targetB) for state in transitionTable.keys()}
+        environmentPolicies = {'a': policyA, 'b': policyB}
+
+        Q_dictList = []
+        for intentionInfoScale in self.intentionInfoScale:
+            getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionTable, environmentPolicies, intentionInfoScale)
+
+            infoRewardA = getLikelihoodRewardFunction('a', rewardA)
+            infoRewardB = getLikelihoodRewardFunction('b', rewardB)
+
+            runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA)
+            runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB)
+
+            V_A = runValueIterationA(S, A, transitionTable, infoRewardA)
+            V_B = runValueIterationB(S, A, transitionTable, infoRewardB)
+
+            for V, R in zip([V_A, V_B], [infoRewardA, infoRewardB]):
+                V_arr = V_dict_to_array(V, S)
+                T = transitionTable
+
+                T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
+                                     for a in A] for s in S])
+                R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
+                                     for a in A] for s in S])
+                Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
+                Q_dict = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+                Q_dictList.append(Q_dict)
+
+        avoidCommitQDicts = {targetA: Q_dictList[0], targetB: Q_dictList[1]}
+        commitQDicts = {targetA: Q_dictList[2], targetB: Q_dictList[3]}
+        return [avoidCommitQDicts, commitQDicts]
+
+
+class RunVI:
+    def __init__(self, gridSize, actionSpace, noiseSpace, noise, gamma, goalReward, visualMap=0):
+        self.gridSize = gridSize
+        self.actionSpace = actionSpace
+        self.noiseSpace = noiseSpace
+        self.noise = noise
+        self.gamma = gamma
+        self.goalReward = goalReward
+        self.visualMap = visualMap
+
+    def __call__(self, goalStates, obstacles_states):
+        env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
+
+        terminalValue = {s: goalReward for s, goalReward in zip(goalStates, self.goalReward)}
+
+        if isinstance(goalStates[0], int):
+            terminalValue = {s: goalReward for s, goalReward in zip([goalStates], self.goalReward)}
+
+        env.add_obstacles(list(obstacles_states))
+        env.add_feature_map("goal", terminalValue, default=0)
+        env.add_terminals([goalStates])
+
+        S = tuple(it.product(range(env.nx), range(env.ny)))
+        A = self.actionSpace
+
+        mode = 1 - self.noise
+        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=[goalStates], is_valid=env.is_state_valid, mode=mode)
+
+        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=goalStates, is_valid=env.is_state_valid, noise=self.noise)
+
+        T = {s: {a: transition_function(s, a) for a in A} for s in S}
+        T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
+                             for a in A] for s in S])
+
+        stepCost = - self.goalReward[0] / (self.gridSize * 2)
+        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=goalStates)
+
+        R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
+        R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
+                             for a in A] for s in S])
+
+        valueIteration = ValueIteration(self.gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles_states)
+        V = valueIteration(S, A, T, R)
+        V_arr = V_dict_to_array(V, S)
+        # print(V)
+
+        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=self.gamma)
+        # Q = np.round(Q)  # round value
+
+        Q_dict = {(s, goalStates): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+
+        if self.visualMap:
+            mapValue = 'V'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            y = np.round(y)  # round value
+            y = y.reshape((self.gridSize, self.gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
+            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
             plt.show()
 
         # print(Q_dict)
@@ -237,20 +370,20 @@ class RunVI:
 
 
 if __name__ == '__main__':
-
     gridSize = 15
     noise = 0.067
-    noiseSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
-    # noiseSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    gamma = 0.9
+    goalReward = [50, 50]
+    actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
-    runVI = RunVI(gridSize, noise, noiseSpace)
+    visualMap = 1
+    runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward, visualMap)
 
-    sheep_states = ((6, 11), (11, 6))
-    # sheep_states = ((6, 11),)
+    goalStates = ((4, 9), (9, 4))
+    # goalStates = ((6, 11),)
 
-    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
-                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
-                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+    obstaclesMap1 = [[]]
 
     obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
                      [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
@@ -264,12 +397,16 @@ if __name__ == '__main__':
                           [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
                           [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
 
-    # obstacles_states = random.choice(obstaclesMap1)
-    obstacles_states = obstaclesMap3[2]
+    # obstaclesMap1 = [[(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),(3,1),(4,1)]]
+
+    obstaclesMap1 = [[(1, 1), (1, 3), (1, 4), (4, 1), (3, 1), (1, gridSize - 1), (0, gridSize - 1), (0, gridSize - 2), (gridSize - 1, 1), (gridSize - 1, 0), (gridSize - 2, 0)]]
+    obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (4, 2), (5, 2), (0, 3), (0, 4), (0, 5), (3, 0), (4, 0), (5, 0)]]
+    obstacles_states = random.choice(obstaclesMap1)
+    # obstacles_states = obstaclesMap3[2]
     # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
 
-    # sheep_states = ((11, 3), (11, 11))
+    # goalStates = ((11, 3), (11, 11))
     # obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8), (6, 6), (6, 8), (7, 6), (7, 8), (8, 6), (8, 8))
 
-    Q_dict = runVI(sheep_states, obstacles_states)
-    # print(Q_dict[(4, 7), sheep_states])
+    Q_dict = runVI(goalStates, obstacles_states)
+    print(Q_dict[(4, 7), goalStates])

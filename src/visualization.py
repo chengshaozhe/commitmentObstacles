@@ -58,6 +58,13 @@ class DrawNewState():
 
     def __call__(self, targetPositionA, targetPositionB, playerPosition, obstacles):
         self.drawBackground()
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
+                    exit()
         pg.draw.rect(self.screen, self.targetColor, [np.int((targetPositionA[0] + self.leaveEdgeSpace + 0.2) * self.widthLineStepSpace),
                                                      np.int((targetPositionA[1] + self.leaveEdgeSpace + 0.2) * self.heightLineStepSpace), self.targetRadius * 2, self.targetRadius * 2])
         pg.draw.rect(self.screen, self.targetColor, [np.int((targetPositionB[0] + self.leaveEdgeSpace + 0.2) * self.widthLineStepSpace),

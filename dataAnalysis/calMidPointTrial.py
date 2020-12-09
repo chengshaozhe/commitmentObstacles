@@ -9,7 +9,7 @@ import pickle
 from scipy.stats import ttest_ind, entropy
 from scipy.interpolate import interp1d
 from sklearn.metrics import mutual_info_score as KL
-from dataAnalysis import calculateSE, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints
+from dataAnalysis import calculateSE, calculateSD, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints
 from statsmodels.stats.anova import anova_lm
 from statsmodels.formula.api import ols
 
@@ -35,11 +35,19 @@ def isGridsALine(playerGrid, targetGrid):
         return False
 
 
-def isTrajHasAvoidPoints(trajectory, aimAction, initPlayerGrid, target1, target2, decisionSteps, conditionName):
+def isTrajHasAvoidPoints(trajectory, aimAction, initPlayerGrid, target1, target2, decisionSteps, conditionName, obstacles):
     trajectory = list(map(tuple, trajectory))
     if conditionName == 'expCondition':
         avoidPoint = calAvoidPoints(initPlayerGrid, decisionSteps)
         hasMidPoint = 1 if avoidPoint in trajectory else 0
+        if decisionSteps == 0:
+            nextStep = trajectory[1]
+            nextStepInLineWithObstacles = [isGridsALine(nextStep, targetGrid) for targetGrid in obstacles]
+            hasMidPoint = 1 if sum(nextStepInLineWithObstacles) > 2 else 0
+        if decisionSteps == 1:
+            avoidPoint = calAvoidPoints(initPlayerGrid, decisionSteps - 1)
+            hasMidPoint = 1 if avoidPoint in trajectory else 0
+
     if conditionName == 'lineCondition':
         avoidPoint = calMidPoints(initPlayerGrid, target1, target2)
         hasMidPoint = 1 if avoidPoint in trajectory else 0
@@ -68,13 +76,15 @@ if __name__ == '__main__':
     statsListAll = []
     stdListAll = []
     statDataAll = []
-    participants = ['humanOld', 'noise0.067_softmaxBeta8']
+    # participants = ['humanTime', 'human', 'noise0.067_softmaxBeta8']
+    participants = ['human', 'noise0_softmaxBeta5']
+    conditionList = [0, 1, 2, 4, 6, 8]
     for participant in participants:
         statsList = []
         stdList = []
         statData = []
 
-        for decisionStep in [2, 4, 6]:
+        for decisionStep in conditionList:
             dataPath = os.path.join(resultsPath, participant)
             df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
             nubOfSubj = len(df["name"].unique())
@@ -87,6 +97,12 @@ if __name__ == '__main__':
 
             dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['noisePoint'] == '[]') & (df['isDecisionStepInZone'] == 1)]
+
+            # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['conditionName'] == 'expCondition')]
+
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['noisePoint'] == '[]')]
 
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
@@ -97,7 +113,7 @@ if __name__ == '__main__':
 
             # dfExpTrail = df[(df['decisionSteps'] == decisionStep) & (df['targetDiff'] == 0) & (df['conditionName'] == 'lineCondition') & (df['isDecisionStepInZone'] == 1)]
 
-            dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
+            dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName'], eval(x['obstacles'])), axis=1)
 
             # dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['aimPlayerGridList']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
 
@@ -167,7 +183,8 @@ if __name__ == '__main__':
     print(statsListAll)
     print(stdListAll)
 
-    print(ttest_ind(statDataAll[0][2], statDataAll[1][2]))
+    # print(statDataAll[0])
+    print(ttest_ind(statDataAll[0][1], statDataAll[1][1]))
 
     # formula = "avoidCommitPoint~C(Model)+C(DecisionStep)+C(Model):C(DecisionStep)"
 
@@ -189,10 +206,11 @@ if __name__ == '__main__':
     # anova_results = anova_lm(ols(formula, statdf).fit())
     # print(anova_results)
 
-    # labels = participants
-    labels = ['Human', 'RL Agent']
+    labels = participants
+    # labels = ['Human', 'Human No Time pressure ', 'RL Agent']
+
     # xlabels = list(statDF.columns)
-    xlabels = [2, 4, 6]
+    xlabels = conditionList
 
     x = np.arange(len(xlabels))
     totalWidth, n = 0.6, len(xlabels)
@@ -200,6 +218,7 @@ if __name__ == '__main__':
     x = x - (totalWidth - width) / 3
     for i in range(len(labels)):
         plt.bar(x + width * i, statsListAll[i], yerr=stdListAll[i], width=width, label=labels[i])
+        # plt.boxplot(x + width * i, statsListAll[i], yerr=stdListAll[i], width=width, label=labels[i])
     plt.xticks(x, xlabels)
     plt.xlabel('Decision Step')
     plt.ylim((0, 1))
