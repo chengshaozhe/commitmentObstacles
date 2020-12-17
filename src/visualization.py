@@ -94,6 +94,12 @@ class DrawImage():
         while pause:
             pg.time.wait(10)
             for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                if event.type == pg.KEYDOWN:
+                    if event.key == pg.K_ESCAPE:
+                        pg.quit()
+                        exit()
                 if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                     pause = False
                 elif event.type == pg.QUIT:

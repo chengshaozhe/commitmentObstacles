@@ -102,7 +102,7 @@ class NormalTrial():
         while pause:
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
-                pg.time.wait(100)
+                pg.time.wait(50)
             aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid, QDict)
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)

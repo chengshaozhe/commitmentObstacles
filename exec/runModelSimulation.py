@@ -94,30 +94,28 @@ def main():
     controlCondition2 = condition(name='controlCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(3, 0), (0, 3), (1, 4), (5, 3), (4, 1), (3, 5), (2, 2), (6, 1), (6, 2), (1, 6), (2, 6), (5, 3)])
 
     numOfObstacles = 18
-    controlDiffList = [0, 1, 2, 3, 4]
-    minSteps = 10
-    minDistanceBetweenTargets = 5
+    controlDiffList = [0, 1, 2]
+    minSteps = 8
+    maxsteps = 13
+    minDistanceBetweenTargets = 4
 
     minDistanceBetweenGrids = max(controlDiffList) + 1
     maxDistanceBetweenGrids = calculateMaxDistanceOfGrid(bounds) - minDistanceBetweenGrids
     randomWorld = RandomWorld(bounds, minDistanceBetweenGrids, maxDistanceBetweenGrids, numOfObstacles)
-    randomCondition = namedtuple('condition', 'name creatMap decisionSteps minSteps minDistanceBetweenTargets controlDiffList')
-    randomMaps = randomCondition(name='randomCondition', creatMap=randomWorld, decisionSteps=0, minSteps=minSteps, minDistanceBetweenTargets=minDistanceBetweenTargets, controlDiffList=controlDiffList)
+    randomCondition = namedtuple('condition', 'name creatMap decisionSteps minSteps maxsteps minDistanceBetweenTargets controlDiffList')
+    randomMaps = randomCondition(name='randomCondition', creatMap=randomWorld, decisionSteps=0, minSteps=minSteps, maxsteps=maxsteps, minDistanceBetweenTargets=minDistanceBetweenTargets, controlDiffList=controlDiffList)
 
-    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b] + [map1ObsStep2, map1ObsStep4, map1ObsStep6, controlCondition1] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2
+    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2 + [randomMaps] * 2
+    targetDiffsList = [0, 1, 2, 'controlAvoid']
 
     # conditionList = [map1ObsStep0a] + [randomMaps] * 2
 
-    targetDiffsList = [0, 1, 2, 'controlAvoid']
-    # conditionList = [map2ObsStep6]
-
-    numBlocks = 3
+    n = 1
+    numBlocks = 3 * n
     expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
     numExpTrial = len(expDesignValues)
 
     # conditionList = [condition2]
-
-    numExpTrial = len(expDesignValues)
     specialDesign = [specialCondition, 0]
 
     numTrialsPerNoiseBlock = 3
@@ -149,7 +147,7 @@ def main():
 
     for softmaxBeta in softmaxBetaList:
         # for noise in noiseList:
-        for i in range(1,20):
+        for i in range(20):
             print(i)
             expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
             random.shuffle(expDesignValues)

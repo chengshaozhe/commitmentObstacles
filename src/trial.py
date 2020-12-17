@@ -131,7 +131,7 @@ class NormalTrial():
         pause = True
         initialTime = time.get_ticks()
         while pause:
-            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid)
+            aimPlayerGrid, aimAction, isReactionTimely = self.controller(realPlayerGrid, bean1Grid, bean2Grid)
             reactionTime.append(time.get_ticks() - initialTime)
             goal = inferGoal(trajectory[-1], aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)
@@ -140,11 +140,14 @@ class NormalTrial():
             if noisePlayerGrid in obstacles:
                 noisePlayerGrid = tuple(trajectory[-1])
             realPlayerGrid = self.checkBoundary(noisePlayerGrid)
-            self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
             trajectory.append(list(realPlayerGrid))
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
-            pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
+            if isReactionTimely:
+                self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
+                pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
+            else:
+                break
         pg.time.wait(500)
         pg.event.set_blocked([pg.KEYDOWN, pg.KEYUP])
         results["reactionTime"] = str(reactionTime)

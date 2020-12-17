@@ -158,7 +158,6 @@ class RandomWorld():
         dimension = max(self.bounds)
         allGrids = tuple(it.product(range(dimension), range(dimension)))
         possibleGrids = list(filter(lambda x: x not in [playerGrid, target1Grid, target2Grid], allGrids))
-
         obstacles = random.sample(possibleGrids, self.numOfObstacles)
         return playerGrid, target1Grid, target2Grid, obstacles
 
@@ -242,44 +241,31 @@ class CreatMap():
         if condition.name == 'randomCondition':
             # playerGrid, target1, target2, obstacles = condition.creatMap()
             avoidCommitPoint = crossPoint = (0, 0)
-
-            playerGrid = (random.randint(1, max(1, self.dimension - 1)), random.randint(1, max(1, self.dimension - 1)))
+            playerGrid = (random.randint(1, max(1, self.dimension - 2)), random.randint(1, max(1, self.dimension - 2)))
             allGrids = tuple(it.product(range(self.dimension), range(self.dimension)))
-            possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) >= condition.minSteps, allGrids))
+            possibleGrids = list(filter(lambda x: calculateGridDis(playerGrid, x) >= condition.minSteps and calculateGridDis(playerGrid, x) <= condition.maxsteps, allGrids))
             target1 = random.choice(possibleGrids)
 
-            possibleGrids2 = list(filter(lambda x: calculateGridDis(playerGrid, x) - calculateGridDis(playerGrid, target1) == random.choice(condition.controlDiffList), possibleGrids))
-
-            possibleGrids2 = list(filter(lambda x: calculateGridDis(target1, x) > condition.minDistanceBetweenTargets, possibleGrids2))
+            possibleGrids2 = []
+            while possibleGrids2 == []:
+                possibleGrids2 = list(filter(lambda x: calculateGridDis(playerGrid, x) - calculateGridDis(playerGrid, target1) == random.choice(condition.controlDiffList), possibleGrids))
+                possibleGrids2 = list(filter(lambda x: calculateGridDis(target1, x) > condition.minDistanceBetweenTargets, possibleGrids2))
             target2 = random.choice(possibleGrids2)
-
             possibleObsGrids = list(filter(lambda x: x not in [playerGrid, target1, target2], allGrids))
             obstacles = random.sample(possibleObsGrids, self.numOfObstacles)
-
-            # possibleTargetGrids = list(it.product(range(3, self.dimension - 1), range(3, self.dimension - 1)))
-            # target1, target2 = random.sample(possibleTargetGrids, 2)
-            # playerGrid = (random.randint(0, 3), random.randint(0, 3))
-            # crossPoint = (7, 7)
-            # targetDisToCrossPoint1 = random.choice(condition.targetDisToCrossPointList)
-            # targetDisToCrossPoint2 = targetDisToCrossPoint1 + abs(random.choice(condition.targetDisToCrossPointList))
-
-            # target1 = (crossPoint[0] + targetDisToCrossPoint1, crossPoint[1])
-            # target2 = (crossPoint[0], crossPoint[1] + targetDisToCrossPoint2)
-
-            # allGrids = tuple(it.product(range(self.dimension - 1), range(self.dimension - 1)))
-            # possibleGrids = list(filter(lambda x: x not in [playerGrid, target1, target2], allGrids))
-            # obstacles = random.sample(possibleGrids, self.numOfObstacles)
         else:
-            # random init player
-            # initBase = condition.initAgent
-            # maxBound = max(1, self.dimension - max(condition.targetDisToCrossPoint) - 1 - max(condition.crossPoint) - 1)
-            # playerGrid = (random.randint(1, maxBound), random.randint(1, maxBound))
 
-            # transformBase = (playerGrid[0] - initBase[0], playerGrid[1] - initBase[1])
-            # obstaclesBase = condition.obstacles
-            # obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
-            # avoidCommitPoint, crossPoint = [tuple(map(sum, zip(point, transformBase))) for point in [condition.avoidCommitPoint, condition.crossPoint]]
             if isinstance(targetDiff, int):
+                # random init player
+                # initBase = condition.initAgent
+                # maxBound = max(1, self.dimension - max(condition.targetDisToCrossPoint) - 1 - max(condition.crossPoint) - 1)
+                # playerGrid = (random.randint(1, maxBound), random.randint(1, maxBound))
+
+                # transformBase = (playerGrid[0] - initBase[0], playerGrid[1] - initBase[1])
+                # obstaclesBase = condition.obstacles
+                # obstacles = [tuple(map(sum, zip(obstacle, transformBase))) for obstacle in obstaclesBase]
+                # avoidCommitPoint, crossPoint = [tuple(map(sum, zip(point, transformBase))) for point in [condition.avoidCommitPoint, condition.crossPoint]]
+
                 playerGrid = condition.initAgent
                 avoidCommitPoint, crossPoint = [condition.avoidCommitPoint, condition.crossPoint]
                 target1, target2 = calTargetPosByTargetDiff(targetDiff, crossPoint, condition.targetDisToCrossPoint)
@@ -290,7 +276,7 @@ class CreatMap():
                 addObstacles = random.sample(possibleObsGrids, self.numOfObstacles - len(fixedObstacles))
                 obstacles = fixedObstacles + addObstacles
             else:
-                # need fix
+                # need fix: avoid middle area control maps
                 playerGrid = crossPoint = avoidCommitPoint = condition.initAgent
                 targetDisToCrossPoint = [10, 11, 12]
                 targetDiff = random.choice([0, 1, 2])
@@ -300,7 +286,7 @@ class CreatMap():
 
                 target1S, target2S = calTargetPosByTargetDiff(0, condition.crossPoint, condition.targetDisToCrossPoint)
                 insideArea = calculateInsideArea(playerGrid, target1S, target2S)
-                possibleObsGrids = list(filter(lambda x: x not in insideArea+[playerGrid, target1, target2], allGrids))
+                possibleObsGrids = list(filter(lambda x: x not in insideArea + [playerGrid, target1, target2], allGrids))
                 addObstacles = random.sample(possibleObsGrids, self.numOfObstacles - len(fixedObstacles))
                 obstacles = fixedObstacles + addObstacles
 

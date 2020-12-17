@@ -25,8 +25,8 @@ def main():
     experimentValues = co.OrderedDict()
     experimentValues["name"] = 'test'
     # experimentValues["name"] = input("Please enter your name:").capitalize()
-    fullScreen = 0
-    mouseVisible = 1
+    fullScreen = 0 if experimentValues["name"] == 'test' else 1
+    mouseVisible = 1 if experimentValues["name"] == 'test' else 0
 
     screenWidth = 600
     screenHeight = 600
@@ -101,29 +101,26 @@ def main():
     controlCondition2 = condition(name='controlCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(3, 0), (0, 3), (1, 4), (5, 3), (4, 1), (3, 5), (2, 2), (6, 1), (6, 2), (1, 6), (2, 6), (5, 3)])
 
     numOfObstacles = 18
-    controlDiffList = [0, 1, 2, 3, 4]
-    minSteps = 10
-    minDistanceBetweenTargets = 5
+    controlDiffList = [0, 1, 2]
+    minSteps = 8
+    maxsteps = 13
+    minDistanceBetweenTargets = 4
 
     minDistanceBetweenGrids = max(controlDiffList) + 1
     maxDistanceBetweenGrids = calculateMaxDistanceOfGrid(bounds) - minDistanceBetweenGrids
     randomWorld = RandomWorld(bounds, minDistanceBetweenGrids, maxDistanceBetweenGrids, numOfObstacles)
-    randomCondition = namedtuple('condition', 'name creatMap decisionSteps minSteps minDistanceBetweenTargets controlDiffList')
-    randomMaps = randomCondition(name='randomCondition', creatMap=randomWorld, decisionSteps=0, minSteps=minSteps, minDistanceBetweenTargets=minDistanceBetweenTargets, controlDiffList=controlDiffList)
+    randomCondition = namedtuple('condition', 'name creatMap decisionSteps minSteps maxsteps minDistanceBetweenTargets controlDiffList')
+    randomMaps = randomCondition(name='randomCondition', creatMap=randomWorld, decisionSteps=0, minSteps=minSteps, maxsteps=maxsteps, minDistanceBetweenTargets=minDistanceBetweenTargets, controlDiffList=controlDiffList)
 
-    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b] + [map1ObsStep2, map1ObsStep4, map1ObsStep6, controlCondition1] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2 + [randomMaps] * 4
-
-    # conditionList = [map1ObsStep0a] + [randomMaps] * 2
+    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2 + [randomMaps] * 2
     targetDiffsList = [0, 1, 2, 'controlAvoid']
+
+    # conditionList = [randomMaps] * 10
     # targetDiffsList = ['controlAvoid']
-    # conditionList = [controlCondition2] * 10
 
     numBlocks = 3
     expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
     numExpTrial = len(expDesignValues)
-
-    # controlDesign = [[randomMaps, -1] * numExpTrial]
-    # expDesignValues.append(controlDesign)
 
     numNormalTrial = len(expDesignValues)
 
@@ -135,7 +132,6 @@ def main():
     noiseCondition = list(permutations([1, 2, 0], numTrialsPerNoiseBlock)) + [(1, 1, 1)]
     blockNumber = int(numNormalTrial / numTrialsPerNoiseBlock)
     noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
-
     # noiseDesignValues = [0] * numNormalTrials
 
 # deubg
@@ -144,9 +140,9 @@ def main():
 # debugs
 
     print('trial:', len(expDesignValues))
-    # if len(expDesignValues) != len(noiseDesignValues):
-    #     print(len(noiseDesignValues))
-    #     raise Exception("unmatch condition design")
+    if len(expDesignValues) != len(noiseDesignValues):
+        print(len(noiseDesignValues))
+        raise Exception("unmatch condition design")
 
     writerPath = os.path.join(resultsPath, experimentValues["name"] + '.csv')
     writer = WriteDataFrameToCSV(writerPath)
@@ -158,7 +154,9 @@ def main():
     creatMap = CreatMap(rotateAngles, gridSize, rotatePoint, numOfObstacles)
 
     pygameActionDict = {pg.K_UP: (0, -1), pg.K_DOWN: (0, 1), pg.K_LEFT: (-1, 0), pg.K_RIGHT: (1, 0)}
-    humanController = HumanController(pygameActionDict)
+
+    responseTimeLimits = 4000
+    humanController = HumanController(pygameActionDict, responseTimeLimits)
     controller = humanController
 
     checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
@@ -177,7 +175,7 @@ def main():
     experiment = ObstacleExperiment(creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, restTrialIndex, restImage)
 
 # start exp
-    # drawImage(formalTrialImage)
+    drawImage(formalTrialImage)
     experiment(noiseDesignValues, expDesignValues)
     drawImage(finishImage)
 

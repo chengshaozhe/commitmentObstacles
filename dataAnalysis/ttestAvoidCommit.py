@@ -78,23 +78,24 @@ if __name__ == '__main__':
     machinePolicyPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'machinePolicy'))
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
-    participants = ['humanEqualDisExp', 'noise0.067_softmaxBeta2.5']
-    # participants = ['human', "noise0.067_softmaxBeta2.5"]
+    participants = ['human', 'noise0.067_softmaxBeta2.5']
+    # participants = ['human']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
     df = pd.concat(dfList, sort=True)
     df['participantsType'] = ['machine' if 'max' in name else 'human' for name in df['name']]
     df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
+    df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
 
-    df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']),axis=1)
+    df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
 
     # df = df[(df['noisePoint'] == '[]')]
 
     # df = df[(df['targetDiff'] == 0) & (df['isDecisionStepInZone'] == 1)]
 
     df = df[(df['targetDiff'] == '0')]
-    dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
+    dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition1')]
 
     # dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName'], eval(x['obstacles'])), axis=1)
 
@@ -108,10 +109,15 @@ if __name__ == '__main__':
 
     # statDF['avoidCommitPercentSE'] = statDF["avoidCommitPercent"].apply(calculateSE)
 
-    df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
-    # print(df.groupby(['name'])['totalTime'].mean())
+    humanDf = df[df['participantsType'] == 'human']
 
+    meanTime = humanDf.groupby(['name'])['totalTime'].mean()
+    print(meanTime)
+    print('numOfSubj:', len(humanDf['name'].unique()))
+
+    # statDF['meanReactionTime'] = [meanTime[name] for name in statDF['name']]
     # print(statDF)
+
     # statDF['sem'] = df.groupby(['participantsType', 'decisionSteps'])["avoidCommitPercent"].apply(calculateSE)
 
     # statDF = statDF[statDF['participantsType'] == 'human']
@@ -121,12 +127,14 @@ if __name__ == '__main__':
     # dfExpTrail.to_csv('dfExpTrail.csv')
 
 # Compute the two-way mixed-design ANOVA
-    # import pingouin as pg
-    # aov = pg.mixed_anova(dv='avoidCommitPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF)
-    # pg.print_table(aov)
+    calAnova = 0
+    if calAnova:
+        import pingouin as pg
+        aov = pg.mixed_anova(dv='avoidCommitPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF)
+        pg.print_table(aov)
 
-    # posthocs = pg.pairwise_ttests(dv='avoidCommitPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF, within_first=1)
-    # pg.print_table(posthocs)
+        posthocs = pg.pairwise_ttests(dv='avoidCommitPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF, within_first=1)
+        pg.print_table(posthocs)
 
     VIZ = 1
     if VIZ:
@@ -136,6 +144,7 @@ if __name__ == '__main__':
         ax.set(xlabel='Decision Step', ylabel='Avoid Commitment Ratio', title='Commitment with Deliberation')
         handles, labels = ax.get_legend_handles_labels()
         plt.legend(loc='best')
+        plt.ylim((0, 0.8))
         plt.show()
 
 #     import statsmodels.api as sm

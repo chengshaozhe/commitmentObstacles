@@ -1,7 +1,96 @@
 import numpy as np
 import pygame as pg
 import random
-from scipy.stats import ttest_ind, entropy
+from pygame import time
+from scipy.stats import entropy
+
+
+class HumanController():
+    def __init__(self, actionDict, responseTimeLimits):
+        self.actionDict = actionDict
+        self.responseTimeLimits = responseTimeLimits
+
+    def __call__(self, playerGrid, targetGrid1, targetGrid2):
+        action = [0, 0]
+        isReactionTimely = True
+        pause = True
+        startTime = time.get_ticks()
+        while pause:
+            if time.get_ticks() - startTime < self.responseTimeLimits:
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        pg.quit()
+                    if event.type == pg.KEYDOWN:
+                        if event.key in self.actionDict.keys():
+                            action = self.actionDict[event.key]
+                            aimePlayerGrid = tuple(np.add(playerGrid, action))
+                            isReactionTimely = True
+                            pause = False
+                        if event.key == pg.K_ESCAPE:
+                            pg.quit()
+                            exit()
+            else:
+                isReactionTimely = False
+                action = random.choice(list(self.actionDict.values()))
+                aimePlayerGrid = tuple(np.add(playerGrid, action))
+                pause = False
+        return aimePlayerGrid, action, isReactionTimely
+
+
+class HumanControllerWithTimePressure():
+    def __init__(self, actionDict):
+        self.actionDict = actionDict
+
+    def __call__(self, playerGrid, targetGrid1, targetGrid2):
+        action = [0, 0]
+        pause = True
+        while pause:
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    pg.quit()
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
+                    exit()
+                if event.type == pg.KEYDOWN:
+                    if event.key in self.actionDict.keys():
+                        action = self.actionDict[event.key]
+                        aimePlayerGrid = tuple(np.add(playerGrid, action))
+                        pause = False
+        return aimePlayerGrid, action
+
+
+class ModelController():
+    def __init__(self, policy, gridSize, softmaxBeta):
+        self.policy = policy
+        self.gridSize = gridSize
+        self.actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, targetGrid1, targetGrid2):
+        try:
+            policyForCurrentStateDict = self.policy[(playerGrid, (targetGrid1, targetGrid2))]
+        except KeyError as e:
+            policyForCurrentStateDict = self.policy[(playerGrid, (targetGrid2, targetGrid1))]
+        if self.softmaxBeta < 0:
+            actionMaxList = [action for action in policyForCurrentStateDict.keys() if
+                             policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict.values()))]
+            action = random.choice(actionMaxList)
+        else:
+
+            actionValue = list(policyForCurrentStateDict.values())
+            softmaxProbabilityList = calculateSoftmaxProbability(actionValue, self.softmaxBeta)
+            action = list(policyForCurrentStateDict.keys())[
+                list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
+        aimePlayerGrid = tuple(np.add(playerGrid, action))
+        # pg.time.delay(500)
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    pg.quit()
+                    exit()
+        return aimePlayerGrid, action
 
 
 def calculateGridDis(grid1, grid2):
@@ -221,62 +310,6 @@ class CheckBoundary():
             adjustedY = self.yMin
         checkedPosition = (adjustedX, adjustedY)
         return checkedPosition
-
-
-class HumanController():
-    def __init__(self, actionDict):
-        self.actionDict = actionDict
-
-    def __call__(self, playerGrid, targetGrid1, targetGrid2):
-        action = [0, 0]
-        pause = True
-        while pause:
-            for event in pg.event.get():
-                if event.type == pg.QUIT:
-                    pg.quit()
-                if event.type == pg.KEYDOWN:
-                    if event.key in self.actionDict.keys():
-                        action = self.actionDict[event.key]
-                        aimePlayerGrid = tuple(np.add(playerGrid, action))
-                        pause = False
-                    if event.key == pg.K_ESCAPE:
-                        pg.quit()
-                        exit()
-        return aimePlayerGrid, action
-
-
-class ModelController():
-    def __init__(self, policy, gridSize, softmaxBeta):
-        self.policy = policy
-        self.gridSize = gridSize
-        self.actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-        self.softmaxBeta = softmaxBeta
-
-    def __call__(self, playerGrid, targetGrid1, targetGrid2):
-        try:
-            policyForCurrentStateDict = self.policy[(playerGrid, (targetGrid1, targetGrid2))]
-        except KeyError as e:
-            policyForCurrentStateDict = self.policy[(playerGrid, (targetGrid2, targetGrid1))]
-        if self.softmaxBeta < 0:
-            actionMaxList = [action for action in policyForCurrentStateDict.keys() if
-                             policyForCurrentStateDict[action] == np.max(list(policyForCurrentStateDict.values()))]
-            action = random.choice(actionMaxList)
-        else:
-
-            actionValue = list(policyForCurrentStateDict.values())
-            softmaxProbabilityList = calculateSoftmaxProbability(actionValue, self.softmaxBeta)
-            action = list(policyForCurrentStateDict.keys())[
-                list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
-        aimePlayerGrid = tuple(np.add(playerGrid, action))
-        # pg.time.delay(500)
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    pg.quit()
-                    exit()
-        return aimePlayerGrid, action
 
 
 class SampleSoftmaxAction:
