@@ -196,11 +196,11 @@ if __name__ == '__main__':
     noise = 0.067
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     gamma = 0.9
-    goalReward = [10]
+    goalReward = [30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
 
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-    softmaxBeta = 8
+    softmaxBeta = 2.5
     softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
     goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     stdList = []
     statDFList = []
 
-    participants = ['humanTime', 'human', 'noise0.067_softmaxBeta8']
+    participants = ['human', 'RL']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
@@ -219,7 +219,9 @@ if __name__ == '__main__':
 
         df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
 
-        df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+        df = df[(df['targetDiff'] == '0')]
+        df = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
+        # df = df[(df['decisionSteps'] == 6)]
         # df = df[(df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
         # df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
@@ -301,7 +303,7 @@ if __name__ == '__main__':
     # print(ranksums(statDFList[0], statDFList[1]))
 
     # lables = participants
-    lables = ['Human', 'Human No Time pressure ', 'RL Agent']
+    lables = ['Human', 'RL']
 
     lineWidth = 1
     for i in range(len(statsList)):

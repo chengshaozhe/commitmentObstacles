@@ -36,8 +36,9 @@ if __name__ == '__main__':
 
     statData = []
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
+    # participants = ['human', 'noise0.0673_softmaxBeta2.5']
+    participants = ['human', 'RL']
 
-    participants = ['human', 'noise0.067_softmaxBeta2.5']
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         # dataPath = resultsPath
@@ -75,6 +76,7 @@ if __name__ == '__main__':
 
     # print(ttest_ind(statData[0], statData[1]))
     print(statsList, stdList)
+    print(statsList)
     # statsList = [[0.98, 0.55]]
     # stdList = [[0.0032, 0.0527]]
     xlabels = ['normalTrial', 'specialTrial']

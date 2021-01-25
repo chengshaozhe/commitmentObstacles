@@ -187,7 +187,7 @@ class SpecialTrial():
         realPlayerGrid = initialPlayerGrid
         initialTime = time.get_ticks()
         while pause:
-            aimPlayerGrid, aimAction = self.controller(realPlayerGrid, bean1Grid, bean2Grid)
+            aimPlayerGrid, aimAction, isReactionTimely = self.controller(realPlayerGrid, bean1Grid, bean2Grid)
             reactionTime.append(time.get_ticks() - initialTime)
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)

@@ -49,6 +49,8 @@ def main():
 
     picturePath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'pictures'))
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
+    if not os.path.exists(resultsPath):
+        os.mkdir(resultsPath)
 
     formalTrialImage = pg.image.load(os.path.join(picturePath, 'introduction.png'))
     finishImage = pg.image.load(os.path.join(picturePath, 'finish.png'))
@@ -135,11 +137,11 @@ def main():
     # noiseDesignValues = [0] * numNormalTrials
 
 # deubg
-    # expDesignValues = [specialDesign] * 2
-    # noiseDesignValues = ['special'] * 2
+    # expDesignValues = [specialDesign] * 10
+    # noiseDesignValues = ['special'] * 10
 # debugs
 
-    print('trial:', len(expDesignValues))
+    print('trial:', len(expDesignValues), len(noiseDesignValues))
     if len(expDesignValues) != len(noiseDesignValues):
         print(len(noiseDesignValues))
         raise Exception("unmatch condition design")
