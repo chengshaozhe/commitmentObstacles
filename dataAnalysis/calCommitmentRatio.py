@@ -11,22 +11,21 @@ from scipy.stats import ttest_ind
 
 from dataAnalysis import *
 from machinePolicy.onlineVIWithObstacle import RunVI
-from dataAnalysis import *
 
 
 gridSize = 15
 noise = 0.067
 noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 gamma = 0.9
-goalReward = [10]
+goalReward = [30]
 actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
 
 runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-softmaxBeta = 5
+softmaxBeta = 2.5
 softmaxPolicy = SoftmaxPolicy(softmaxBeta)
 initPrior = [0.5, 0.5]
 intentionInfernce = IntentionInfernce(initPrior, softmaxPolicy, runVI)
-inferThreshold = 1
+inferThreshold = .9
 calFirstIntentionFromPosterior = CalFirstIntentionFromPosterior(inferThreshold)
 
 if __name__ == '__main__':
@@ -42,20 +41,20 @@ if __name__ == '__main__':
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
         # dataPath = resultsPath
-
         df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
         # df.to_csv("all.csv")
         nubOfSubj = len(df["name"].unique())
         print('participant', participant, nubOfSubj)
 
-        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
+        # df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calculateFirstIntentionConsistency(eval(x['goal'])), axis=1)
 
-        # df = df[df['noiseNumber'] == 'special']
-        # df['posteriorList'] = df.apply(lambda x: intentionInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+        df = df[df['noiseNumber'] != 'special']
+        df['posteriorList'] = df.apply(lambda x: intentionInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+        df['firstIntention'] = df.apply(lambda x: calFirstIntentionFromPosterior(x['posteriorList']), axis=1)
 
-        # df['firstIntention'] = df.apply(lambda x: calFirstIntentionFromPosterior(x['posteriorList']), axis=1)
+        df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calIntentionCosistency(x['firstIntention'], x['posteriorList']), axis=1)
 
-        # df["firstIntentionConsistFinalGoal"] = df.apply(lambda x: calIntentionCosistency(x['firstIntention'], x['posteriorList']), axis=1)
+        # df.to_csv("dfgoalinfer.csv")
 
         dfNormailTrail = df[df['noiseNumber'] != 'special']
         dfSpecialTrail = df[df['noiseNumber'] == 'special']
@@ -80,7 +79,7 @@ if __name__ == '__main__':
     # statsList = [[0.98, 0.55]]
     # stdList = [[0.0032, 0.0527]]
     xlabels = ['normalTrial', 'specialTrial']
-    lables = ['Human', 'Human No Time pressure ', 'RL Agent']
+    lables = ['Human', 'RL Agent']
     x = np.arange(len(xlabels))
     totalWidth, n = 0.6, len(participants)
     width = totalWidth / n

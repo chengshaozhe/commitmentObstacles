@@ -15,7 +15,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     statsList = []
     stdList = []
-    participants = ['human', 'noise0.0673_softmaxBeta2.5']
+    participants = ['human', 'noise0.0673_softmaxBeta2.5', 'max']
     # participants = ['human']
 
     for participant in participants:
@@ -29,9 +29,9 @@ if __name__ == '__main__':
         nubOfSubj = len(df["name"].unique())
         print(participant, nubOfSubj)
 
-        dfExpTrail = df[(df['conditionName'] == 'expCondition2') & (df['decisionSteps'] == 6)]
+        # dfExpTrail = df[(df['conditionName'] == 'expCondition2') & (df['decisionSteps'] == 6)]
 
-        # dfExpTrail = df
+        dfExpTrail = df
 
         # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
         # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] != 'none')]

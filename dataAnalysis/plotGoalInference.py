@@ -196,74 +196,52 @@ if __name__ == '__main__':
     noise = 0.067
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     gamma = 0.9
-    goalReward = [30]
+    goalReward = [10]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
 
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-    softmaxBeta = 2.5
+    softmaxBeta = 8
     softmaxPolicy = SoftmaxPolicy(softmaxBeta)
     initPrior = [0.5, 0.5]
     goalInfernce = GoalInfernce(initPrior, softmaxPolicy, runVI)
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
-    statsList = []
-    stdList = []
-    statDFList = []
-
     participants = ['human', 'RL']
-    for participant in participants:
-        dataPath = os.path.join(resultsPath, participant)
-        df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
-        nubOfSubj = len(df["name"].unique())
-        print(participant, nubOfSubj)
 
-        df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
+    dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
+    dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
+    df = pd.concat(dfList, sort=True)
+    df['participantsType'] = ['RL Agent' if 'max' in name else 'Human' for name in df['name']]
 
-        df = df[(df['targetDiff'] == '0')]
-        df = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
-        # df = df[(df['decisionSteps'] == 6)]
-        # df = df[(df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
+    df = df[(df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition')]
 
-        # df = df[(df['decisionSteps'] == 2) & (df['targetDiff'] == 0) & (df['conditionName'] == 'expCondition') & (df['isDecisionStepInZone'] == 1)]
+    df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
-        # df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+    xnew = np.linspace(0., 1., 15)
+    df['goalPosterior'] = df.apply(lambda x: calPosteriorByInterpolation(x['goalPosteriorList'], xnew), axis=1)
 
+    # xnew = np.array([2, 4, 6, 8])
+    # df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
 
-        df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+    # df['goalPosterior'] = df.apply(lambda x: calInfo(x['expectedInfoList']), axis=1)
 
-        # df['expectedInfoList'] = df.apply(lambda x: calculateActionInformation(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2'])), axis=1)
+    # df = df[(df['areaType'] == 'rect')]
 
-        # df['firstIntentionStep'] = df.apply(lambda x: calFirstIntentionStep(x['goalPosteriorList']), axis=1)
+    # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] == 'special')]
 
-        # df['firstIntentionStepRatio'] = df.apply(lambda x: calFirstIntentionStepRatio(x['goalPosteriorList']), axis=1)
+    # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] != 'none')]
 
+    # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'midLine')]
+    # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine')]
+    # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine') & (df['intentionedDisToTargetMin'] == 2)]
 
-#interpolation
-        # xnew = np.linspace(0., 1., 15)
-        # df['goalPosterior'] = df.apply(lambda x: calPosteriorByInterpolation(x['goalPosteriorList'], xnew), axis=1)
+    # dfExpTrail = df[(df['areaType'] == 'straightLine') | (df['areaType'] == 'midLine') & (df['distanceDiff'] == 0)]
+    # dfExpTrail = df[(df['areaType'] != 'none')]
 
-        # xnew = np.array([0,1,2,3,4,5,6,7,8,9,10])
-        # df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
+    # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['areaType'] != 'rect')]
 
-        # df['goalPosterior'] = df.apply(lambda x: calInfo(x['expectedInfoList']), axis=1)
-
-        # df = df[(df['areaType'] == 'rect')]
-
-        # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] == 'special')]
-
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] != 'none')]
-
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'midLine')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine') & (df['intentionedDisToTargetMin'] == 2)]
-
-        # dfExpTrail = df[(df['areaType'] == 'straightLine') | (df['areaType'] == 'midLine') & (df['distanceDiff'] == 0)]
-        # dfExpTrail = df[(df['areaType'] != 'none')]
-
-        # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['areaType'] != 'rect')]
-
-        # dfExpTrail = df[df['noiseNumber'] != 'special']
-        # dfExpTrail = df
+    # dfExpTrail = df[df['noiseNumber'] != 'special']
+    # dfExpTrail = df
 
         statDF = pd.DataFrame()
 
@@ -293,22 +271,17 @@ if __name__ == '__main__':
 
         statDFList.append(statArr)
 
-    # testDataSet = abs(np.array(statDFList[0]) - np.array(statDFList[1]))
-    # testData = testDataSet
-    # print(testData)
-    # print(ttest_ind(testData, np.zeros(len(testData))))
-
     pvalus = np.array([ttest_ind(statDFList[0][i], statDFList[1][i])[1] for i in range(statDFList[0].shape[0])])
     # pvalus = np.array([mannwhitneyu(statDFList[0][i], statDFList[1][i])[1] for i in range(statDFList[0].shape[0])])
 
-    sigArea = np.where(pvalus < 0.05)[0]
-    print(sigArea)
+    # sigArea = np.where(pvalus < 0.05)[0]
+    # print(sigArea)
 
     # print(mannwhitneyu(statDFList[0], statDFList[1]))
     # print(ranksums(statDFList[0], statDFList[1]))
 
     # lables = participants
-    lables = ['Humans', 'RL']
+    lables = ['Human', 'Human No Time pressure ', 'RL Agent']
 
     lineWidth = 1
     for i in range(len(statsList)):

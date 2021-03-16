@@ -1,4 +1,4 @@
-wimport numpy as np
+import numpy as np
 import collections as co
 import functools as ft
 import itertools as it
@@ -396,7 +396,7 @@ if __name__ == '__main__':
     gridSize = 7
     noise = 0
     gamma = 0.9
-    goalReward = [100]
+    goalReward = [30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 

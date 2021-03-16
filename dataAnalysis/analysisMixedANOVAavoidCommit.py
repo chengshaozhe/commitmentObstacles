@@ -79,8 +79,7 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     participants = ['human', 'RL']
-    # participants = ['RL']
-    # participants = ['human']
+    # participants = ['noise70']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -88,9 +87,9 @@ if __name__ == '__main__':
     df['participantsType'] = ['RL Agent' if 'max' in name else 'Human' for name in df['name']]
 
     #!!!!!!
-    # df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
+    df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
 
-    # df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
+    df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
     df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
 
     df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
@@ -110,9 +109,8 @@ if __name__ == '__main__':
 
     statDF = pd.DataFrame()
     # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps'])["hasAvoidPoint"].mean()
-    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
 
-    # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
+    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps', 'conditionName'])["hasAvoidPoint"].mean()
 
     statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: 1 - x['avoidCommitPercent'], axis=1)
 
@@ -121,42 +119,87 @@ if __name__ == '__main__':
 
     # statDF['avoidCommitPercentSE'] = statDF["avoidCommitPercent"].apply(calculateSE)
 
+    humanDf = df[df['participantsType'] == 'Human']
+
+    meanTime = humanDf.groupby(['name'])['totalTime'].mean()
+    print(meanTime)
+    print('numOfSubj:', len(humanDf['name'].unique()))
+
     # statDF['meanReactionTime'] = [meanTime[name] for name in statDF['name']]
 
     # statDF['sem'] = df.groupby(['participantsType', 'decisionSteps'])["avoidCommitPercent"].apply(calculateSE)
 
-    statDF = statDF[statDF['participantsType'] == 'Human']
+    # statDF = statDF[statDF['participantsType'] == 'Human']
     # statDF = statDF[statDF['participantsType'] == 'RL Agent']
 
-    # statDF = statDF[statDF['decisionSteps'] == 1]
-#
     # print(statDF)
     # dfExpTrail.to_csv('dfExpTrail.csv')
 
 # Compute the two-way mixed-design ANOVA
-    calAnova = 1
+    calAnova = 0
     if calAnova:
         import pingouin as pg
-        pd.set_option('max_columns', 8)
-        stats = pg.ttest(statDF['ShowCommitmentPercent'], 0.5)
-        print(stats)
-        print('mean:', np.mean(statDF['ShowCommitmentPercent']))
+        aov = pg.mixed_anova(dv='ShowCommitmentPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF)
+        pg.print_table(aov)
 
-        # print(stats['p-val'], stats['CI95%'])
+        posthocs = pg.pairwise_ttests(dv='ShowCommitmentPercent', within='decisionSteps', between='participantsType', subject='name', data=statDF, within_first=0)
+        pg.print_table(posthocs)
 
-        # from scipy import stats
-        # a = stats.ttest_1samp(statDF['ShowCommitmentPercent'], 0.5)
-        # print(a)
-
-    VIZ = 1
+    VIZ = 0
     if VIZ:
         import seaborn as sns
-        ax = sns.barplot(x="participantsType", y="ShowCommitmentPercent", data=statDF, ci=68)
+        ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="participantsType", data=statDF, ci=68)
         # ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="name", data=statDF, ci=68)
 
-        # ax = sns.boxplot(x="decisionSteps", y="ShowCommitmentPercent", hue="participantsType", data=statDF, palette="Set1", showmeans=True)
-        ax.set(xlabel='Decision Step', ylabel='Show Commitment Ratio', title='Commitment with Deliberation')
+        # ax = sns.boxplot(x="decisionSteps", y="avoidCommitPercent", hue="participantsType", data=statDF, palette="Set1", showmeans=True)
+        ax.set(xlabel='Decision Step', ylabel='Show  Commitment Ratio', title='Commitment with Deliberation')
         handles, labels = ax.get_legend_handles_labels()
         plt.legend(loc='best')
         plt.ylim((0, 1))
         plt.show()
+
+    VIZObsCondition = 1
+    if VIZObsCondition:
+        import pingouin as pg
+        aov = pg.rm_anova(dv='avoidCommitPercent', within=['decisionSteps', 'conditionName'], subject='name', data=statDF)
+        # pg.print_table(aov)
+
+        posthocs = pg.pairwise_ttests(dv='avoidCommitPercent', within=['decisionSteps', 'conditionName'], subject='name', data=statDF)
+        # pg.print_table(posthocs)
+
+        import seaborn as sns
+        ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="conditionName", data=statDF, ci=68)
+        # ax.set(xlabel='Decision Step', ylabel='Show  Commitment Ratio', title='Commitment with Deliberation')
+        handles, labels = ax.get_legend_handles_labels()
+
+        # labels.get_texts()[0].set_text('1 obstacle at crossroad')
+        # labels.get_texts()[1].set_text('2 obstacles at crossroad')
+
+        plt.xticks(fontsize=16, color='black')
+        plt.yticks(fontsize=10, color='black')
+        plt.xlabel('Steps-to-crossroad Condition', fontsize=16, color='black')
+        plt.ylabel('Show Commitment Ratio', fontsize=16, color='black')
+
+        plt.legend(loc='best')
+        L = plt.legend()
+        L.get_texts()[0].set_text('1 obstacle at crossroad')
+        L.get_texts()[1].set_text('2 obstacles at crossroad')
+
+        plt.ylim((0, 1))
+        plt.show()
+
+
+#     import statsmodels.api as sm
+#     from statsmodels.formula.api import ols
+#     from bioinfokit.analys import stat
+#     model = ols('avoidCommitPercent ~ C(decisionSteps) + C(participantsType) + C(decisionSteps):C(participantsType)', data=statDF).fit()
+#     anova_table = sm.stats.anova_lm(model, typ=2)
+
+#     res = stat()
+#     res.anova_stat(df=statDF, res_var='avoidCommitPercent', anova_model='avoidCommitPercent~C(participantsType)+C(decisionSteps)+C(participantsType):C(decisionSteps)')
+#     print(res.anova_summary)
+
+
+# # Post-hoc comparison
+#     res.tukey_hsd(df=statDF, res_var='avoidCommitPercent', xfac_var=['decisionSteps', 'participantsType'], anova_model='avoidCommitPercent~C(participantsType)+C(decisionSteps)+C(participantsType):C(decisionSteps)')
+#     print(res.tukey_summary)

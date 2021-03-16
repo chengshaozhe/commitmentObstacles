@@ -11,6 +11,7 @@ from scipy.interpolate import interp1d
 from sklearn.metrics import mutual_info_score as KL
 from dataAnalysis import calculateSE, calculateSD, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints, calculateFirstIntentionConsistency
 import researchpy
+import seaborn as sns
 
 
 def calAvoidPoints(playerGrid, decisionSteps):
@@ -79,7 +80,7 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     participants = ['human', 'RL']
-    # participants = ['RL']
+    # participants = ['noise0.0673_softmaxBeta2.5']
     # participants = ['human']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
@@ -88,9 +89,9 @@ if __name__ == '__main__':
     df['participantsType'] = ['RL Agent' if 'max' in name else 'Human' for name in df['name']]
 
     #!!!!!!
-    # df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
+    df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
 
-    # df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
+    df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
     df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
 
     df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
@@ -104,20 +105,17 @@ if __name__ == '__main__':
 
     dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
 
-    # dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName'], eval(x['obstacles'])), axis=1)
-
     dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: hasAvoidPoints(eval(x['aimPlayerGridList']), eval(x['avoidCommitPoint'])), axis=1)
 
     statDF = pd.DataFrame()
-    # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps'])["hasAvoidPoint"].mean()
-    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
+    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps'])["hasAvoidPoint"].mean()
 
     # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
 
     statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: 1 - x['avoidCommitPercent'], axis=1)
 
     statDF = statDF.reset_index()
-    statDF['participantsType'] = ['RL Agent' if 'max' in name else 'Human' for name in statDF['name']]
+    statDF['participantsType'] = ['RL Agent fixed-future path' if 'max' in name else 'Human fixed-future path' for name in statDF['name']]
 
     # statDF['avoidCommitPercentSE'] = statDF["avoidCommitPercent"].apply(calculateSE)
 
@@ -125,38 +123,31 @@ if __name__ == '__main__':
 
     # statDF['sem'] = df.groupby(['participantsType', 'decisionSteps'])["avoidCommitPercent"].apply(calculateSE)
 
-    statDF = statDF[statDF['participantsType'] == 'Human']
+    # statDF = statDF[statDF['participantsType'] == 'Human']
     # statDF = statDF[statDF['participantsType'] == 'RL Agent']
 
-    # statDF = statDF[statDF['decisionSteps'] == 1]
-#
     # print(statDF)
     # dfExpTrail.to_csv('dfExpTrail.csv')
 
-# Compute the two-way mixed-design ANOVA
-    calAnova = 1
-    if calAnova:
-        import pingouin as pg
-        pd.set_option('max_columns', 8)
-        stats = pg.ttest(statDF['ShowCommitmentPercent'], 0.5)
-        print(stats)
-        print('mean:', np.mean(statDF['ShowCommitmentPercent']))
+    stat2DF = pd.DataFrame()
+    stat2DF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps'])["hasAvoidPoint"].mean()
+    stat2DF['avoidCommitPercent'] = 1
+    stat2DF = stat2DF.reset_index()
+    stat2DF['participantsType'] = ['RL Agent open-ended path' if 'max' in name else 'Human open-ended path' for name in stat2DF['name']]
 
-        # print(stats['p-val'], stats['CI95%'])
+    # ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="participantsType", data=statDF, ci=68)
+    # bottom_plot = sns.barplot(x='decisionSteps', y='avoidCommitPercent', hue="participantsType", data=statDF, ci=68, palette="Set2")
+    bottom_plot = sns.barplot(x='decisionSteps', y='avoidCommitPercent', hue="participantsType", data=stat2DF, ci=None, palette=["#FFC0CB", '#B0E0E6'])
+    ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="participantsType", data=statDF, ci=None)
 
-        # from scipy import stats
-        # a = stats.ttest_1samp(statDF['ShowCommitmentPercent'], 0.5)
-        # print(a)
+    # ax = sns.boxplot(x="decisionSteps", y="avoidCommitPercent", hue="participantsType", data=statDF, palette="Set1", showmeans=True)
 
-    VIZ = 1
-    if VIZ:
-        import seaborn as sns
-        ax = sns.barplot(x="participantsType", y="ShowCommitmentPercent", data=statDF, ci=68)
-        # ax = sns.barplot(x="decisionSteps", y="ShowCommitmentPercent", hue="name", data=statDF, ci=68)
+    # ax.set(xlabel='steps-to-crossroad', ylabel='Choosing ratio', title='Commitment with Deliberation', fontsize=20)
+    ax.set_xlabel(xlabel='steps-to-crossroad', fontsize=20)
+    ax.set_ylabel(ylabel='Choosing ratio', fontsize=20)
+    ax.set_title(label='Commitment with Deliberation', fontsize=20)
 
-        # ax = sns.boxplot(x="decisionSteps", y="ShowCommitmentPercent", hue="participantsType", data=statDF, palette="Set1", showmeans=True)
-        ax.set(xlabel='Decision Step', ylabel='Show Commitment Ratio', title='Commitment with Deliberation')
-        handles, labels = ax.get_legend_handles_labels()
-        plt.legend(loc='best')
-        plt.ylim((0, 1))
-        plt.show()
+    handles, labels = ax.get_legend_handles_labels()
+    plt.legend(loc='best', fontsize=16)
+    plt.ylim((0, 1))
+    plt.show()
