@@ -8,11 +8,13 @@ import os
 import pickle
 import sys
 import time
+sys.setrecursionlimit(2**30)
 import pandas as pd
 import seaborn as sns
-import random
-# from viz import *
-# from reward import *
+
+import sys
+sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
+from machinePolicy.reward import *
 
 
 class GridWorld():
@@ -45,6 +47,34 @@ class GridWorld():
         if state in self.obstacles:
             return False
         return True
+
+    def reward(self, s, a, s_n, W={}):
+        if not W:
+            return sum(map(lambda f: self.features[f][s_n], self.features))
+        return sum(map(lambda f: self.features[f][s_n] * W[f], W.keys()))
+
+    def draw(self, ax=None, ax_images={}, features=[], colors={},
+             masked_values={}, default_masked=0, show=True):
+
+        new_features = [f for f in features if f not in ax_images.keys()]
+        old_features = [f for f in features if f in ax_images.keys()]
+        ax, new_ax_images = self.draw_features_first_time(ax, new_features,
+                                                          colors, masked_values, default_masked=0)
+        old_ax_images = self.update_features_images(ax_images, old_features,
+                                                    masked_values,
+                                                    default_masked=0)
+        ax_images.update(old_ax_images)
+        ax_images.update(new_ax_images)
+
+        return ax, ax_images
+
+
+def T_dict(S=(), A=(), tran_func=None):
+    return {s: {a: tran_func(s, a) for a in A} for s in S}
+
+
+def R_dict(S=(), A=(), T={}, reward_func=None):
+    return {s: {a: {s_n: reward_func(s, a, s_n) for s_n in T[s][a]} for a in A} for s in S}
 
 
 def grid_transition(s, a, is_valid=None, terminals=()):
@@ -175,7 +205,22 @@ def Q_from_V(s, a, T=None, R=None, V=None, gamma=None):
                 for (s_n, p) in T[s][a].iteritems()])
 
 
-class RunVIMDP:
+def softmax_epislon_policy(Q, temperature=10, epsilon=0.1):
+    na = Q.shape[-1]
+    q_exp = np.exp(Q / temperature)
+    norm = np.sum(q_exp, axis=1)
+    prob = (q_exp / norm[:, np.newaxis]) * (1 - epsilon) + epsilon / na
+    return prob
+
+
+def pickle_dump_single_result(dirc="", prefix="result", name="", data=None):
+    full_name = "_".join((prefix, name)) + ".pkl"
+    path = os.path.join(dirc, full_name)
+    pickle.dump(data, open(path, "wb"))
+    print ("saving %s at %s" % (name, path))
+
+
+class RunVI:
     def __init__(self, gridSize, actionSpace, noiseSpace, noise, gamma, goalReward):
         self.gridSize = gridSize
         self.actionSpace = actionSpace
@@ -184,63 +229,50 @@ class RunVIMDP:
         self.gamma = gamma
         self.goalReward = goalReward
 
-    def __call__(self, goalStates, obstacles_states):
-        env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
+    def __call__(self, goalStates, obstacles):
+        gridSize, A, noiseSpace, noise, gamma, goalReward = self.gridSize, self.actionSpace, self.noiseSpace, self.noise, self.gamma, self.goalReward
+
+        env = GridWorld("test", nx=gridSize, ny=gridSize)
+        # terminalValue = {s: goalReward for s, goalReward in zip([goalStates], [goalReward] * len([goalStates]))}
 
         terminalValue = {s: goalReward for s, goalReward in zip([goalStates], [self.goalReward])}
-
         if isinstance(goalStates[0], int):
             terminalValue = {s: goalReward for s, goalReward in zip([goalStates], self.goalReward)}
 
-        env.add_obstacles(list(obstacles_states))
         env.add_feature_map("goal", terminalValue, default=0)
-        env.add_terminals([goalStates])
+        env.add_terminals(list(goalStates))
 
         S = tuple(it.product(range(env.nx), range(env.ny)))
-        A = self.actionSpace
 
-        mode = 1 - self.noise
-        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=[goalStates], is_valid=env.is_state_valid, mode=mode)
-
-        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=goalStates, is_valid=env.is_state_valid, noise=self.noise)
+        mode = 1 - noise
+        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=noiseSpace, terminals=goalStates, is_valid=env.is_state_valid, mode=mode)
 
         T = {s: {a: transition_function(s, a) for a in A} for s in S}
         T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
         stepCost = - self.goalReward[0] / (self.gridSize * 2)
-        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=goalStates)
+        reward_func = ft.partial(
+            grid_reward, env=env, const=stepCost, terminals=goalStates)
 
         R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
         R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
                              for a in A] for s in S])
 
-        valueIteration = ValueIteration(self.gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles_states)
+        valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=goalStates)
         V = valueIteration(S, A, T, R)
-        V_arr = V_dict_to_array(V, S)
-        # print(V)
 
-        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=self.gamma)
+        V_arr = V_dict_to_array(V, S)
+        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
         Q_dict = {(s, goalStates): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        VIZ = 0
-        if VIZ:
-            mapValue = 'V'
-            heatMapValue = eval(mapValue)
-            y = dict_to_array(heatMapValue)
-            y = y.reshape((self.gridSize, self.gridSize))
-            df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-            sns.heatmap(df, annot=True, fmt='.3f')
-            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
-            plt.show()
+        Q_dictDefault = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        # print(Q_dict)
-        return S, A, T, R, self.gamma, Q_dict
+        return S, A, T, R, gamma, Q_dict, Q_dictDefault
 
 
 def calculateSoftmaxProbability(acionValues, beta):
-    expont = np.multiply(beta, acionValues)
-    newProbabilityList = list(np.divide(np.exp(expont), np.sum(np.exp(expont))))
+    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
     return newProbabilityList
 
 
@@ -254,15 +286,16 @@ class SoftmaxGoalPolicy:
         actions = list(actionDict.keys())
         actionValues = list(actionDict.values())
         softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
+        # softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
         softMaxActionDict = {action: prob for action, prob in zip(actions, softmaxProbabilityList)}
         return softMaxActionDict
 
 
 class GetLikelihoodRewardFunction:
-    def __init__(self, transitionTable, goalPolicies, infoScale=5):
+    def __init__(self, transitionTable, goalPolicies, commitmentRatio):
         self.transitionTable = transitionTable
         self.goalPolicies = goalPolicies
-        self.infoScale = infoScale
+        self.commitmentRatio = commitmentRatio
 
     def __call__(self, trueGoal, originalReward):
         likelihoodRewardFunction = self.createLikelihoodReward(trueGoal)
@@ -276,8 +309,7 @@ class GetLikelihoodRewardFunction:
         return(rewardFunction)
 
     def mergeRewards(self, reward1, reward2):
-        mergedReward = {state: {action: {nextState: reward1[state][action][nextState] + reward2[state][action][nextState]
-                                         for nextState in reward2[state][action].keys()}
+        mergedReward = {state: {action: {nextState: reward1[state][action][nextState] + reward2[state][action][nextState] for nextState in reward2[state][action].keys()}
                                 for action in reward2[state].keys()}
                         for state in reward2.keys()}
         return(mergedReward)
@@ -287,7 +319,7 @@ class GetLikelihoodRewardFunction:
         notGoalLikelihood = sum([self.getNextStateProbability(state, nextState, g)
                                  for g in self.goalPolicies.keys()])
 
-        likelihoodRatio = self.infoScale * goalLikelihood / notGoalLikelihood
+        likelihoodRatio = self.commitmentRatio * goalLikelihood / notGoalLikelihood
         return(likelihoodRatio)
 
     def getNextStateProbability(self, state, nextState, goal):
@@ -304,150 +336,84 @@ class RunIntentionModel:
         self.runVI = runVI
         self.intentionInfoScale = intentionInfoScale
 
-    def __call__(self, targetA, targetB, obstacles_states):
-        S, A, transitionTable, rewardA, gamma, Q_dictA = self.runVI(targetA, obstacles_states)
-        S, A, transitionTable, rewardB, gamma, Q_dictB = self.runVI(targetB, obstacles_states)
-
+    def __call__(self, targetA, targetB, obstacles):
+        _, _, transitionRL, rewardRL, _, _, RLDict = self.runVI(tuple((targetA, targetB)), obstacles)
+        S, A, transitionTableA, rewardA, gamma, Q_dictA, _ = self.runVI(targetA, obstacles)
+        S, A, transitionTableB, rewardB, gamma, Q_dictB, _ = self.runVI(targetB, obstacles)
         getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
         getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
-        policyA = {state: getPolicyA(state, targetA) for state in transitionTable.keys()}
-        policyB = {state: getPolicyB(state, targetB) for state in transitionTable.keys()}
-        environmentPolicies = {'a': policyA, 'b': policyB}
+        policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
+        policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
 
+        goalPolicies = {'a': policyA, 'b': policyB}
         Q_dictList = []
         for intentionInfoScale in self.intentionInfoScale:
-            getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionTable, environmentPolicies, intentionInfoScale)
+            runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
+            runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
 
-            infoRewardA = getLikelihoodRewardFunction('a', rewardA)
-            infoRewardB = getLikelihoodRewardFunction('b', rewardB)
+            getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPolicies, intentionInfoScale)
+            getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPolicies, intentionInfoScale)
 
-            runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA)
-            runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB)
+            infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
+            infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
 
-            V_A = runValueIterationA(S, A, transitionTable, infoRewardA)
-            V_B = runValueIterationB(S, A, transitionTable, infoRewardB)
-            for V, R in zip([V_A, V_B], [infoRewardA, infoRewardB]):
+            V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
+            V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+
+            # runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
+
+            # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPolicies, intentionInfoScale)
+            # infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
+            # infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
+
+            # V_A = runValueIteration(S, A, transitionRL, infoRewardA)
+            # V_B = runValueIteration(S, A, transitionRL, infoRewardB)
+
+            visualMap = 0
+            if visualMap:
+                mapValue = 'V_A'
+                heatMapValue = eval(mapValue)
+                y = dict_to_array(heatMapValue)
+                # y = np.round(y)  # round value
+                y = y.reshape((gridSize, gridSize))
+                df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+                sns.heatmap(df, annot=True, fmt='.3f')
+                # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
+                plt.show()
+
+            for V, R, T in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionTableA, transitionTableB]):
                 V_arr = V_dict_to_array(V, S)
-                T = transitionTable
-
                 T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                                      for a in A] for s in S])
                 R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
                                      for a in A] for s in S])
+
                 Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
                 Q_dict = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
                 Q_dictList.append(Q_dict)
 
         avoidCommitQDicts = {targetA: Q_dictList[0], targetB: Q_dictList[1]}
         commitQDicts = {targetA: Q_dictList[2], targetB: Q_dictList[3]}
-        return [avoidCommitQDicts, commitQDicts]
-
-
-class RunVI:
-    def __init__(self, gridSize, actionSpace, noiseSpace, noise, gamma, goalReward, visualMap=0):
-        self.gridSize = gridSize
-        self.actionSpace = actionSpace
-        self.noiseSpace = noiseSpace
-        self.noise = noise
-        self.gamma = gamma
-        self.goalReward = goalReward
-        self.visualMap = visualMap
-
-    def __call__(self, goalStates, obstacles_states):
-        env = GridWorld("test", nx=self.gridSize, ny=self.gridSize)
-
-        terminalValue = {s: goalReward for s, goalReward in zip([goalStates], [self.goalReward])}
-
-        if isinstance(goalStates[0], int):
-            terminalValue = {s: goalReward for s, goalReward in zip([goalStates], self.goalReward)}
-
-        env.add_obstacles(list(obstacles_states))
-        env.add_feature_map("goal", terminalValue, default=0)
-        env.add_terminals([goalStates])
-
-        S = tuple(it.product(range(env.nx), range(env.ny)))
-        A = self.actionSpace
-
-        mode = 1 - self.noise
-        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=self.noiseSpace, terminals=[goalStates], is_valid=env.is_state_valid, mode=mode)
-
-        # transition_function = ft.partial(grid_transition_noise, A=A, terminals=goalStates, is_valid=env.is_state_valid, noise=self.noise)
-
-        T = {s: {a: transition_function(s, a) for a in A} for s in S}
-        T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
-                             for a in A] for s in S])
-
-        stepCost = - self.goalReward[0] / (self.gridSize * 2)
-        reward_func = ft.partial(grid_reward, env=env, const=stepCost, terminals=goalStates)
-
-        R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
-        R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
-                             for a in A] for s in S])
-
-        valueIteration = ValueIteration(self.gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles_states)
-        V = valueIteration(S, A, T, R)
-        V_arr = V_dict_to_array(V, S)
-        # print(V)
-
-        Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=self.gamma)
-        # Q = np.round(Q)  # round value
-
-        Q_dict = {(s, goalStates): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
-
-        if self.visualMap:
-            mapValue = 'V'
-            heatMapValue = eval(mapValue)
-            print(heatMapValue)
-            y = dict_to_array(heatMapValue)
-            y = np.round(y)  # round value
-            y = y.reshape((self.gridSize, self.gridSize))
-            df = pd.DataFrame(y, columns=[x for x in range(self.gridSize)])
-            sns.heatmap(df, annot=True, fmt='.3f')
-            plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
-            plt.show()
-
-        # print(Q_dict)
-        return Q_dict
+        return [RLDict, avoidCommitQDicts, commitQDicts]
 
 
 if __name__ == '__main__':
     gridSize = 15
     noise = 0.067
     gamma = 0.9
-    goalReward = [50, 50]
+    goalReward = [30, 30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    noiseActionSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
-    visualMap = 1
-    runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward, visualMap)
+    runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    goalStates = ((4, 9), (9, 4))
-    # goalStates = ((6, 11),)
+    softmaxBeta = 2.5
+    intentionInfoScale = [0]
+    runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
 
-    obstaclesMap1 = [[]]
-
-    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
-
-    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
-                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
-                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
-
-    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
-                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
-                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
-
-    # obstaclesMap1 = [[(1,3),(1,4),(1,5),(1,6),(1,7),(1,8),(3,1),(4,1)]]
-
-    obstaclesMap1 = [[(1, 1), (1, 3), (1, 4), (4, 1), (3, 1), (1, gridSize - 1), (0, gridSize - 1), (0, gridSize - 2), (gridSize - 1, 1), (gridSize - 1, 0), (gridSize - 2, 0)]]
-    obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (4, 2), (5, 2), (0, 3), (0, 4), (0, 5), (3, 0), (4, 0), (5, 0)]]
-    obstacles_states = random.choice(obstaclesMap1)
-    # obstacles_states = obstaclesMap3[2]
-    # obstacles_states = tuple(map(lambda x: (x[0] + 1, x[1] + 1), obstacles_states))
-
-    # goalStates = ((11, 3), (11, 11))
-    # obstacles_states = ((2, 6), (2, 8), (3, 6), (3, 8), (5, 6), (5, 8), (6, 6), (6, 8), (7, 6), (7, 8), (8, 6), (8, 8))
-
-    Q_dict = runVI(goalStates, obstacles_states)
-    print(Q_dict[(4, 7), goalStates])
+    goalStates = ((6, 10), (10, 6))
+    obstaclesMap1 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]]
+    import random
+    obstacles = random.choice(obstaclesMap1)
+    target1, target2 = goalStates
+    policies = runModel(target1, target2, obstacles)

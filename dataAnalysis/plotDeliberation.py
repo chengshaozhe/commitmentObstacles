@@ -75,17 +75,29 @@ def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
     return np.all(isStepInZone)
 
 
+def calParticipantType(name):
+    if 'max' in name:
+        participantsType = 'Desire Model'
+    if 'intention' in name:
+        participantsType = 'Intention Model'
+    else:
+        participantsType = 'Humans'
+
+    return participantsType
+
+
 if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
-    participants = ['human', 'RL']
+    # participants = ['human', 'RL']
     # participants = ['noise0.0673_softmaxBeta2.5']
-    # participants = ['human']
+    participants = ['human', 'showIntention2']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
     df = pd.concat(dfList, sort=True)
-    df['participantsType'] = ['RL Agent' if 'max' in name else 'Human' for name in df['name']]
+    # df['participantsType'] = ['RL Agent' if 'noise' in name else 'Human' for name in df['name']]
 
+    df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
     #!!!!!!
     # df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
 
@@ -113,8 +125,9 @@ if __name__ == '__main__':
     statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: int((1 - x['avoidCommitPercent']) * 100), axis=1)
 
     statDF = statDF.reset_index()
-    statDF['participantsType'] = ['RL' if 'max' in name else 'Humans' for name in statDF['name']]
+    # statDF['participantsType'] = ['RL' if 'noise' in name else 'Humans' for name in statDF['name']]
 
+    statDF['participantsType'] = statDF.apply(lambda x: calParticipantType(x['name']), axis=1)
     # statDF['avoidCommitPercentSE'] = statDF["avoidCommitPercent"].apply(calculateSE)
 
     # statDF['meanReactionTime'] = [meanTime[name] for name in statDF['name']]
@@ -152,8 +165,8 @@ if __name__ == '__main__':
     xList, yList = changeRectWidth(ax, 0.2)
 
     stats = statDF.groupby(['decisionSteps', 'participantsType'], sort=False)['ShowCommitmentPercent'].agg(['mean', 'count', 'std'])
-    print(stats)
-    print('-' * 50)
+    # print(stats)
+    # print('-' * 50)
 
     sem_hi = []
     sem_lo = []
@@ -165,10 +178,11 @@ if __name__ == '__main__':
 
     stats['sem_hi'] = sem_hi
     stats['sem_lo'] = sem_lo
+    pd.set_option('display.max_columns', None)
     print(stats)
 
     yerrList = [stats['mean'] - stats['sem_lo'], stats['sem_hi'] - stats['mean']]
-    plt.errorbar(x=xList, y=yList, yerr=yerrList, fmt='none', c='k', elinewidth=2,capsize=5)
+    plt.errorbar(x=xList, y=yList, yerr=yerrList, fmt='none', c='k', elinewidth=2, capsize=5)
 
     ax.spines['right'].set_color('none')
     ax.spines['top'].set_color('none')

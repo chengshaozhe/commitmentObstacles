@@ -116,7 +116,6 @@ def inferGoal(originGrid, aimGrid, targetGridA, targetGridB):
 
 def calculateSoftmaxProbability(acionValues, beta):
     newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
-
     return newProbabilityList
 
 
@@ -324,10 +323,7 @@ class SampleSoftmaxAction:
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:
-            softmaxProbabilityList = calculateSoftmaxProbability(actionValues, self.softmaxBeta)
-            action = actionKeys[
-                list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
-
+            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
         aimPlayerGrid = tuple(np.add(playerGrid, action))
         return aimPlayerGrid, action
 

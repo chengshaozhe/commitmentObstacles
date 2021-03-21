@@ -13,10 +13,10 @@ import pandas as pd
 from src.writer import WriteDataFrameToCSV
 from src.visualization import InitializeScreen, DrawBackground, DrawNewState, DrawImage, DrawText
 from src.controller import AvoidCommitModel, ModelController, NormalNoise, AwayFromTheGoalNoise, CheckBoundary, backToZoneNoise, backToCrossPointNoise, SampleToZoneNoise, AimActionWithNoise, InferGoalPosterior, ModelControllerWithGoal, ModelControllerOnline
-from src.simulationTrial import NormalTrial, SpecialTrial
+from src.simulationTrial import NormalTrialOnline, SpecialTrialOnline
 from src.experiment import IntentionModelSimulation
 from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
-from machinePolicy.onlineVIWithObstacle import RunVIMDP, RunIntentionModel
+from machinePolicy.showIntentionModel import RunVI, RunIntentionModel
 from src.design import *
 from src.controller import *
 
@@ -26,10 +26,9 @@ def main():
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     machinePolicyPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'machinePolicy'))
     dataPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'conditionData'))
-    df = pd.read_csv(os.path.join(dataPath, 'DesignConditionForAvoidCommitmentZone.csv'))
-    df['intentionedDisToTargetMin'] = df.apply(lambda x: x['minDis'] - x['avoidCommitmentZone'], axis=1)
 
     gridSize = 15
+    bounds = [0, 0, gridSize - 1, gridSize - 1]
 
     screenWidth = 600
     screenHeight = 600
@@ -58,122 +57,130 @@ def main():
     drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
     drawImage = DrawImage(screen)
 
-# condition
-    width = [5]
-    height = [5]
-    intentionDis = [3, 4, 5]
-    decisionSteps = [2, 4, 6, 10]
-    targetDiffs = [0, 0, 1, 2]
+# condition maps
+    condition = namedtuple('condition', 'name decisionSteps initAgent avoidCommitPoint crossPoint targetDisToCrossPoint fixedObstacles')
 
-    rotateAngles = [0, 90, 180, 270]
-    obstaclesMap1 = [[(2, 2), (2, 4), (3, 5), (3, 6), (4, 2), (5, 3), (6, 3)],
-                     [(2, 2), (2, 4), (2, 5), (3, 6), (4, 2), (5, 2), (6, 3)],
-                     [(2, 2), (2, 4), (3, 5), (2, 6), (4, 2), (5, 3), (6, 2)]]
+    map1ObsStep0a = condition(name='expCondition1', decisionSteps=0, initAgent=(0, 2), avoidCommitPoint=(1, 2), crossPoint=(3, 3), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1)])
 
-    obstaclesMap2 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (5, 1), (1, 5), (5, 3), (3, 5), (6, 3), (3, 6)],
-                     [(3, 3), (3, 1), (1, 3), (5, 3), (3, 5), (6, 3), (3, 6)]]
+    map2ObsStep0a = condition(name='expCondition2', decisionSteps=0, initAgent=(0, 2), avoidCommitPoint=(1, 2), crossPoint=(4, 4), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1), (1, 4), (4, 1)])
 
-    obstaclesMap3 = [[(4, 4), (4, 1), (4, 2), (6, 4), (4, 6), (1, 4), (2, 4)],
-                     [(4, 4), (5, 1), (4, 2), (6, 4), (4, 6), (1, 5), (2, 4)],
-                     [(4, 4), (3, 1), (4, 2), (6, 4), (4, 6), (1, 3), (2, 4)]]
+    map1ObsStep0b = condition(name='expCondition1', decisionSteps=0, initAgent=(2, 0), avoidCommitPoint=(2, 1), crossPoint=(3, 3), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1)])
 
-    speicalObstacleMap = [[(4, 1), (4, 2), (6, 3), (6, 4), (1, 4), (2, 4), (3, 6), (4, 6)],
-                          [(5, 1), (4, 2), (6, 3), (6, 4), (1, 5), (2, 4), (3, 6), (4, 6)],
-                          [(3, 1), (4, 2), (6, 3), (6, 4), (1, 3), (2, 4), (3, 6), (4, 6)]]
+    map2ObsStep0b = condition(name='expCondition2', decisionSteps=0, initAgent=(2, 0), avoidCommitPoint=(2, 1), crossPoint=(4, 4), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1), (1, 4), (4, 1)])
 
-    obstaclesCondition = [obstaclesMap1, obstaclesMap2, obstaclesMap3, speicalObstacleMap]
-    obstaclesMaps = dict(zip(decisionSteps, obstaclesCondition))
+    map1ObsStep1a = condition(name='expCondition1', decisionSteps=1, initAgent=(1, 0), avoidCommitPoint=(2, 1), crossPoint=(3, 3), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1)])
+
+    map2ObsStep1a = condition(name='expCondition2', decisionSteps=1, initAgent=(1, 0), avoidCommitPoint=(2, 1), crossPoint=(4, 4), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1), (1, 4), (4, 1)])
+
+    map1ObsStep1b = condition(name='expCondition1', decisionSteps=1, initAgent=(0, 1), avoidCommitPoint=(1, 2), crossPoint=(3, 3), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1)])
+
+    map2ObsStep1b = condition(name='expCondition2', decisionSteps=1, initAgent=(0, 1), avoidCommitPoint=(1, 2), crossPoint=(4, 4), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(1, 1), (1, 3), (3, 1), (1, 4), (4, 1)])
+
+    map1ObsStep2 = condition(name='expCondition1', decisionSteps=2, initAgent=(0, 0), avoidCommitPoint=(2, 2), crossPoint=(3, 3), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(1, 1), (1, 3), (3, 1)])
+
+    map2ObsStep2 = condition(name='expCondition2', decisionSteps=2, initAgent=(0, 0), avoidCommitPoint=(2, 2), crossPoint=(4, 4), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(1, 1), (1, 3), (3, 1), (1, 4), (4, 1)])
+
+    map1ObsStep4 = condition(name='expCondition1', decisionSteps=4, initAgent=(0, 0), avoidCommitPoint=(3, 3), crossPoint=(4, 4), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(2, 2), (2, 0), (2, 4), (0, 2), (4, 2)])
+
+    map2ObsStep4 = condition(name='expCondition2', decisionSteps=4, initAgent=(0, 0), avoidCommitPoint=(3, 3), crossPoint=(5, 5), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(2, 2), (2, 0), (2, 4), (0, 2), (4, 2), (2, 5), (5, 2)])
+
+    map1ObsStep6 = condition(name='expCondition1', decisionSteps=6, initAgent=(0, 0), avoidCommitPoint=(4, 4), crossPoint=(5, 5), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)])
+
+    map2ObsStep6 = condition(name='expCondition2', decisionSteps=6, initAgent=(0, 0), avoidCommitPoint=(4, 4), crossPoint=(6, 6), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4), (3, 6), (6, 3), ])
+
+    specialCondition = condition(name='specialCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5], fixedObstacles=[(3, 0), (0, 3), (1, 4), (1, 6), (4, 1), (6, 1), (6, 2), (2, 6), (5, 3), (3, 5)])
+
+    controlCondition1 = condition(name='controlCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(3, 0), (0, 3), (1, 4), (1, 6), (4, 1), (6, 1), (6, 2), (2, 6), (5, 3), (3, 5)])
+
+    controlCondition2 = condition(name='controlCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5, 6, 7], fixedObstacles=[(3, 0), (0, 3), (1, 4), (5, 3), (4, 1), (3, 5), (2, 2), (6, 1), (6, 2), (1, 6), (2, 6), (5, 3)])
+
+    numOfObstacles = 18
+    controlDiffList = [0, 1, 2]
+    minSteps = 8
+    maxsteps = 13
+    minDistanceBetweenTargets = 4
+
+    minDistanceBetweenGrids = max(controlDiffList) + 1
+    maxDistanceBetweenGrids = calculateMaxDistanceOfGrid(bounds) - minDistanceBetweenGrids
+    randomWorld = RandomWorld(bounds, minDistanceBetweenGrids, maxDistanceBetweenGrids, numOfObstacles)
+    randomCondition = namedtuple('condition', 'name creatMap decisionSteps minSteps maxsteps minDistanceBetweenTargets controlDiffList')
+    randomMaps = randomCondition(name='randomCondition', creatMap=randomWorld, decisionSteps=0, minSteps=minSteps, maxsteps=maxsteps, minDistanceBetweenTargets=minDistanceBetweenTargets, controlDiffList=controlDiffList)
+
+    # conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2 + [randomMaps] * 2
+    # targetDiffsList = [0, 1, 2, 'controlAvoid']
+
+    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2
+    targetDiffsList = [0]
+
+    # conditionList = [map1ObsStep0a] + [randomMaps] * 2
+
+    n = 1
+    numBlocks = 3 * n
+    expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
+    numExpTrial = len(expDesignValues)
+
+    # conditionList = [condition2]
+    specialDesign = [specialCondition, 0]
+
+    numTrialsPerNoiseBlock = 3
+    noiseCondition = list(permutations([1, 2, 0], numTrialsPerNoiseBlock)) + [(1, 1, 1)]
+    blockNumber = int(numExpTrial / numTrialsPerNoiseBlock)
+    noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
 
     rotatePoint = RotatePoint(gridSize)
+    isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
+
+    rotateAngles = [0, 90, 180, 270]
+    creatMap = CreatMap(rotateAngles, gridSize, rotatePoint, numOfObstacles)
 
     checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+
     normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
     specialNoise = backToCrossPointNoise
 
-    initPrior = [0.5, 0.5]
     # inferGoalPosterior = InferGoalPosterior(goalPolicy)
 
-    softmaxBetaList = [4, 6, 8, 10]
-    noiseList = [0.067]
+    softmaxBetaList = [2.5]
     noise = 0.067
+    gamma = 0.9
+    goalReward = [10, 10]
+    actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
+
+    intentionInfoScale = [-10, 10]
+
     for softmaxBeta in softmaxBetaList:
-        # for noise in noiseList:
-        for i in range(30):
+        for i in range(1, 20):
             print(i)
 
-            numBlocks = 3
-            expDesignValues = [[b, h, d, m, diff] for b in width for h in height for d in intentionDis for m in decisionSteps for diff in targetDiffs] * numBlocks
-
+            expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
             random.shuffle(expDesignValues)
-            numExpTrial = len(expDesignValues)
-
-            specialDesign = [5, 5, 4, 10, 0]
             expDesignValues.append(specialDesign)
 
-            condition = namedtuple('condition', 'name decisionSteps')
-            expCondition = condition(name='expCondition', decisionSteps=decisionSteps[:-1])
-            lineCondition = condition(name='lineCondition', decisionSteps=decisionSteps[:-1])
-            specialCondition = condition(name='specialCondition', decisionSteps=[10])
-
-            conditionList = [expCondition] * numExpTrial
-            random.shuffle(conditionList)
-            numNormalTrials = len(conditionList)
-
-            numTrialsPerBlock = 3
-            noiseCondition = list(permutations([1, 2, 0], numTrialsPerBlock)) + [(1, 1, 1)]
-            blockNumber = int(numNormalTrials / numTrialsPerBlock)
-            noiseDesignValues = createNoiseDesignValue(noiseCondition, blockNumber)
-
-            if noise == 0:
-                noiseDesignValues = [0] * numNormalTrials
-
-            conditionList.append(specialCondition)
-
-            if len(conditionList) != len(noiseDesignValues):
-                raise Exception("unmatch condition design")
-
-    # deubg
-    #         expDesignValues = [specialDesign] * 10
-    #         noiseDesignValues = ['special'] * 10
-    #         conditionList = [expCondition] * 10
-    # debug
-
-            isInBoundary = IsInBoundary([0, gridSize - 1], [0, gridSize - 1])
-            creatRectMap = CreatRectMap(rotateAngles, gridSize, obstaclesMaps, rotatePoint)
-            creatLineMap = CreatLineMap(rotateAngles, gridSize, rotatePoint, isInBoundary)
-            samplePositionFromCondition = SamplePositionFromCondition(creatRectMap, creatLineMap, expDesignValues)
-
-            noise = 0.1
-            gamma = 0.9
-            goalReward = 10
-            actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-
-            runVI = RunVIMDP(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-
-            intentionInfoScale = [-1, 1]
             runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
 
             # modelController = ModelControllerOnline(softmaxBeta)
             # modelController = AvoidCommitModel(softmaxBeta, actionSpace, checkBoundary)
-            # controller = modelController
             controller = SampleSoftmaxAction(softmaxBeta)
 
-            renderOn = 1
-            normalTrial = NormalTrial(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
-            specialTrial = SpecialTrial(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
+            renderOn = 0
+            normalTrial = NormalTrialOnline(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
+            specialTrial = SpecialTrialOnline(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 
             experimentValues = co.OrderedDict()
-            experimentValues["name"] = "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta) + '_' + str(i)
-            resultsDirPath = os.path.join(resultsPath, "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
+            experimentValues["name"] = "noise" + str(noise) + '_' + "intentionInfoScale" + str(intentionInfoScale[1]) + '_' + str(i)
+            # resultsDirPath = os.path.join(resultsPath, "Intention-" + "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
+
+            resultsDirPath = os.path.join(resultsPath, "showIntention2")
+
             if not os.path.exists(resultsDirPath):
                 os.mkdir(resultsDirPath)
 
             writerPath = os.path.join(resultsDirPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
-            experiment = IntentionModelSimulation(normalTrial, specialTrial, writer, experimentValues, samplePositionFromCondition, drawImage, resultsPath, runModel)
-            experiment(noiseDesignValues, conditionList)
+            experiment = IntentionModelSimulation(creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, runModel)
+            experiment(noiseDesignValues, expDesignValues)
 
 
 if __name__ == "__main__":
