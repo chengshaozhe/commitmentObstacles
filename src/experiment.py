@@ -127,3 +127,41 @@ class IntentionModelSimulation():
             response = self.experimentValues.copy()
             response.update(results)
             self.writer(response, trialIndex)
+
+
+class OnlineIntentionModelSimulation():
+    def __init__(self, creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, runVI):
+        self.creatMap = creatMap
+        self.normalTrial = normalTrial
+        self.specialTrial = specialTrial
+        self.writer = writer
+        self.experimentValues = experimentValues
+        self.drawImage = drawImage
+        self.resultsPath = resultsPath
+        self.runVI = runVI
+
+    def __call__(self, noiseDesignValues, expDesignValues):
+        for trialIndex, [condition, targetDiff] in enumerate(expDesignValues):
+            playerGrid, target1, target2, obstacles, avoidCommitPoint, crossPoint = self.creatMap(condition, targetDiff)
+
+            targets = list([target1, target2])
+            intentionPolicies = [self.runVI(goal, obstacles)[-2] for goal in targets]
+            if isinstance(noiseDesignValues[trialIndex], int):
+                results = self.normalTrial(intentionPolicies, target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex], condition.decisionSteps)
+            else:
+                results = self.specialTrial(intentionPolicies, target1, target2, playerGrid, obstacles)
+
+            results["conditionName"] = condition.name
+            results["decisionSteps"] = str(condition.decisionSteps)
+            results["targetDiff"] = targetDiff
+            results["avoidCommitPoint"] = str(avoidCommitPoint)
+            results["crossPoint"] = str(crossPoint)
+            results["obstacles"] = str(obstacles)
+            results["noiseNumber"] = noiseDesignValues[trialIndex]
+            results["playerGrid"] = str(playerGrid)
+            results["target1"] = str(target1)
+            results["target2"] = str(target2)
+
+            response = self.experimentValues.copy()
+            response.update(results)
+            self.writer(response, trialIndex)

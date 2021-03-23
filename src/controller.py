@@ -115,7 +115,9 @@ def inferGoal(originGrid, aimGrid, targetGridA, targetGridB):
 
 
 def calculateSoftmaxProbability(acionValues, beta):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
+    exponents = np.multiply(beta, acionValues)
+    exponents = np.array([min(700, exponent) for exponent in exponents])
+    newProbabilityList = list(np.divide(np.exp(exponents), np.sum(np.exp(exponents))))
     return newProbabilityList
 
 
@@ -349,15 +351,75 @@ def calBasePolicy(posteriorList, actionProbList):
     return basePolicy
 
 
+def sigmoidScale(x, intensity=30, threshold=0.2):
+    return 1 / (1 + np.exp(- intensity * (x - threshold)))
+
+
+class CalPerceivedIntentions:
+    def __init__(self, intensity, threshold):
+        self.intensity = intensity
+        self.threshold = threshold
+
+    def __call__(self, bayesIntentions):
+        a, b = bayesIntentions
+        diff = abs(a - b)
+        perceivedDiff = sigmoidScale(diff, self.intensity, self.threshold)
+
+        if a > b:
+            aNew = (perceivedDiff + 1) / 2
+        else:
+            aNew = (1 - perceivedDiff) / 2
+
+        perceivedIntentions = [aNew, 1 - aNew]
+        return perceivedIntentions
+
+
 class InferGoalPosterior:
-    def __init__(self, runVI, commitBeta):
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, action, target1, target2, priorList, goalPolicies):
+        targets = list([target1, target2])
+
+        actionValueList = [goalPolicies[goalIndex][playerGrid, goal].get(action) for goalIndex, goal in enumerate(targets)]
+        likelihoodList = calculateSoftmaxProbability(actionValueList, self.softmaxBeta)
+
+        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
+        evidence = sum(posteriorUnnormalized)
+        posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
+
+        return posteriorList
+
+
+class ActWithMonitorIntention:
+    def __init__(self, softmaxBeta, calPerceivedIntentions):
+        self.softmaxBeta = softmaxBeta
+        self.calPerceivedIntentions = calPerceivedIntentions
+
+    def __call__(self, intentionPolicies, playerGrid, target1, target2, priorList):
+        targets = list([target1, target2])
+        perceivedIntentions = self.calPerceivedIntentions(priorList)
+        targetIndex = list(np.random.multinomial(1, perceivedIntentions)).index(1)
+        goal = targets[targetIndex]
+
+        actionDict = intentionPolicies[targetIndex][playerGrid, goal]
+        if self.softmaxBeta < 0:
+            action = chooseMaxAcion(actionDict)
+        else:
+            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
+        aimPlayerGrid = tuple(np.add(playerGrid, action))
+        return aimPlayerGrid, action
+
+
+class InferGoalPosteriorOnline:
+    def __init__(self, runVI, softmaxBeta):
         self.runVI = runVI
         self.softmaxBeta = softmaxBeta
 
     def __call__(self, playerGrid, action, target1, target2, priorList):
         targets = list([target1, target2])
         goalPolicy = [self.runVI(goal, obstacles) for goal in targets]
-# todo
+
         actionValueList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
         likelihoodList = calculateSoftmaxProbability(actionValueList, self.softmaxBeta)
 

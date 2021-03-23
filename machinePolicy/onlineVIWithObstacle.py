@@ -414,7 +414,7 @@ if __name__ == '__main__':
     gridSize = 15
     noise = 0.067
     gamma = 0.9
-    goalReward = [50, 50]
+    goalReward = [30, 30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 

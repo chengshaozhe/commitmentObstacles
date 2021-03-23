@@ -144,14 +144,14 @@ def main():
     softmaxBetaList = [2.5]
     noise = 0.067
     gamma = 0.9
-    goalReward = [10, 10]
+    goalReward = [30, 30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    intentionInfoScale = [-10, 10]
+    intentionInfoScale = [-1, 1]
 
     for softmaxBeta in softmaxBetaList:
-        for i in range(1, 20):
+        for i in range(20):
             print(i)
 
             expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
@@ -164,7 +164,7 @@ def main():
             # modelController = AvoidCommitModel(softmaxBeta, actionSpace, checkBoundary)
             controller = SampleSoftmaxAction(softmaxBeta)
 
-            renderOn = 0
+            renderOn = 1
             normalTrial = NormalTrialOnline(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary)
             specialTrial = SpecialTrialOnline(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary)
 

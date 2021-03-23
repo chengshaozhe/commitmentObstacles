@@ -16,7 +16,7 @@ if __name__ == '__main__':
     statsList = []
     stdList = []
     participants = ['human', 'noise0.0673_softmaxBeta2.5', 'max']
-    # participants = ['human']
+    participants = ['human', 'actWithMonitorIntention']
 
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
@@ -30,21 +30,10 @@ if __name__ == '__main__':
         print(participant, nubOfSubj)
 
         # dfExpTrail = df[(df['conditionName'] == 'expCondition2') & (df['decisionSteps'] == 6)]
+        df = df[(df['targetDiff'] == '0') | (df['targetDiff'] == 0)]
 
         dfExpTrail = df
-
-        # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['noiseNumber'] != 'special')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] != 'none')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'midLine')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine')]
-        # dfExpTrail = df[(df['distanceDiff'] == 0) & (df['areaType'] == 'straightLine') & (df['intentionedDisToTargetMin'] == 2)]
-
-        # dfExpTrail = df[(df['areaType'] == 'straightLine') | (df['areaType'] == 'midLine') & (df['distanceDiff'] == 0)]
-        # dfExpTrail = df[(df['areaType'] != 'none')]
-        # dfExpTrail = df[(df['areaType'] == 'expRect') & (df['areaType'] != 'rect')]
-
         # dfExpTrail = df[df['noiseNumber'] != 'special']
-        # dfExpTrail = df
 
         statDF = pd.DataFrame()
         # statDF['firstIntentionStep'] = dfExpTrail.groupby('name')["firstIntentionStep"].mean()

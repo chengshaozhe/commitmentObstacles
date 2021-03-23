@@ -241,6 +241,7 @@ class RunVI:
 
         env.add_feature_map("goal", terminalValue, default=0)
         env.add_terminals(list(goalStates))
+        env.add_obstacles(list(obstacles))
 
         S = tuple(it.product(range(env.nx), range(env.ny)))
 
@@ -272,7 +273,9 @@ class RunVI:
 
 
 def calculateSoftmaxProbability(acionValues, beta):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
+    exponents = np.multiply(beta, acionValues)
+    exponents = np.array([min(700, exponent) for exponent in exponents])
+    newProbabilityList = list(np.divide(np.exp(exponents), np.sum(np.exp(exponents))))
     return newProbabilityList
 
 
@@ -345,14 +348,14 @@ class RunIntentionModel:
         policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
         policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
 
-        goalPolicies = {'a': policyA, 'b': policyB}
+        goalPoliciesDict = {'a': policyA, 'b': policyB}
         Q_dictList = []
         for intentionInfoScale in self.intentionInfoScale:
             runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
             runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
 
-            getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPolicies, intentionInfoScale)
-            getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPolicies, intentionInfoScale)
+            getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, intentionInfoScale)
+            getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, intentionInfoScale)
 
             infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
             infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
@@ -360,9 +363,9 @@ class RunIntentionModel:
             V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
             V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
 
+            print(rewardRL[(3, 6)][(0, 1)][(3, 7)], rewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardB[(3, 6)][(0, 1)][(3, 7)])
             # runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
-
-            # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPolicies, intentionInfoScale)
+            # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, intentionInfoScale)
             # infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
             # infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
 
@@ -403,16 +406,16 @@ if __name__ == '__main__':
     gamma = 0.9
     goalReward = [30, 30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
-    noiseActionSpace = [(0, -2), (0, 2), (-2, 0), (2, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
     softmaxBeta = 2.5
-    intentionInfoScale = [0]
+    intentionInfoScale = [0.2]
     runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
 
-    goalStates = ((6, 10), (10, 6))
-    obstaclesMap1 = [[(3, 3), (4, 1), (1, 4), (5, 3), (3, 5), (6, 3), (3, 6)]]
+    goalStates = ((4, 9), (9, 4))
+    obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (4, 2), (5, 2), (0, 3), (0, 4), (0, 5), (3, 0), (4, 0), (5, 0)]]
     import random
     obstacles = random.choice(obstaclesMap1)
     target1, target2 = goalStates

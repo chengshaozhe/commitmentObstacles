@@ -78,7 +78,7 @@ def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
 def calParticipantType(name):
     if 'max' in name:
         participantsType = 'Desire Model'
-    if 'intention' in name:
+    if 'noise' in name:
         participantsType = 'Intention Model'
     else:
         participantsType = 'Humans'
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     # participants = ['human', 'RL']
     # participants = ['noise0.0673_softmaxBeta2.5']
-    participants = ['human', 'showIntention2']
+    participants = ['human', 'actWithMonitorIntention']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -111,6 +111,9 @@ if __name__ == '__main__':
     # df = df[(df['targetDiff'] == 0) & (df['isDecisionStepInZone'] == 1)]
 
     df = df[(df['targetDiff'] == '0')]
+    # df = df[(df['targetDiff'] == '0') | (df['targetDiff'] == 0)]
+
+
     # dfExpTrail = df[(df['conditionName'] == 'expCondition1')]
 
     dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
