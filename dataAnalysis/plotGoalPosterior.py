@@ -207,10 +207,10 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
 
-    participants = ['human', 'RL']
-    # participants = ['human', 'showIntention']
+    # participants = ['human', 'RL']
+    participants = ['human', 'showIntention2']
     # decisionStep = 2
-    for decisionStep in [1, 0]:
+    for decisionStep in [1,0]:
         statsList = []
         stdList = []
         statDFList = []

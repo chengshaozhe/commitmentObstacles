@@ -351,26 +351,27 @@ class RunIntentionModel:
         goalPoliciesDict = {'a': policyA, 'b': policyB}
         Q_dictList = []
         for intentionInfoScale in self.intentionInfoScale:
-            runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
-            runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
+            # runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
+            # runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
 
-            getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, intentionInfoScale)
-            getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, intentionInfoScale)
+            # getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, intentionInfoScale)
+            # getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, intentionInfoScale)
 
-            infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
-            infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
+            # infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
+            # infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
 
-            V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
-            V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+            # V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
+            # V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
 
-            print(rewardRL[(3, 6)][(0, 1)][(3, 7)], rewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardB[(3, 6)][(0, 1)][(3, 7)])
-            # runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
-            # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, intentionInfoScale)
-            # infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
-            # infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
+            # print(rewardRL[(3, 6)][(0, 1)][(3, 7)], rewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardB[(3, 6)][(0, 1)][(3, 7)])
 
-            # V_A = runValueIteration(S, A, transitionRL, infoRewardA)
-            # V_B = runValueIteration(S, A, transitionRL, infoRewardB)
+            runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
+            getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, intentionInfoScale)
+            infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
+            infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
+
+            V_A = runValueIteration(S, A, transitionRL, infoRewardA)
+            V_B = runValueIteration(S, A, transitionRL, infoRewardB)
 
             visualMap = 0
             if visualMap:
@@ -384,7 +385,7 @@ class RunIntentionModel:
                 # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
                 plt.show()
 
-            for V, R, T in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionTableA, transitionTableB]):
+            for V, R, T in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionRL, transitionRL]):
                 V_arr = V_dict_to_array(V, S)
                 T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
                                      for a in A] for s in S])
@@ -398,6 +399,132 @@ class RunIntentionModel:
         avoidCommitQDicts = {targetA: Q_dictList[0], targetB: Q_dictList[1]}
         commitQDicts = {targetA: Q_dictList[2], targetB: Q_dictList[3]}
         return [RLDict, avoidCommitQDicts, commitQDicts]
+
+
+class RunShowIntentionModel:
+    def __init__(self, runVI, softmaxBeta, intentionInfoScale):
+        self.softmaxBeta = softmaxBeta
+        self.runVI = runVI
+        self.intentionInfoScale = intentionInfoScale
+
+    def __call__(self, targetA, targetB, obstacles):
+        _, _, transitionRL, rewardRL, _, _, RLDict = self.runVI(tuple((targetA, targetB)), obstacles)
+        S, A, transitionTableA, rewardA, gamma, Q_dictA, _ = self.runVI(targetA, obstacles)
+        S, A, transitionTableB, rewardB, gamma, Q_dictB, _ = self.runVI(targetB, obstacles)
+        getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
+        getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
+        policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
+        policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
+
+        goalPoliciesDict = {'a': policyA, 'b': policyB}
+        Q_dictList = []
+
+        runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
+        runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
+
+        getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, self.intentionInfoScale)
+        getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, self.intentionInfoScale)
+
+        infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
+        infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
+
+        V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
+        V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+
+        # print(rewardRL[(3, 6)][(0, 1)][(3, 7)], rewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardB[(3, 6)][(0, 1)][(3, 7)])
+
+        runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
+        getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
+        infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
+        infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
+
+        V_A = runValueIteration(S, A, transitionRL, infoRewardA)
+        V_B = runValueIteration(S, A, transitionRL, infoRewardB)
+
+        visualMap = 0
+        if visualMap:
+            mapValue = 'V_A'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            # y = np.round(y)  # round value
+            y = y.reshape((gridSize, gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
+            # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
+            plt.show()
+
+        for V, R, T in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionTableA, transitionTableB]):
+            V_arr = V_dict_to_array(V, S)
+            T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
+                                 for a in A] for s in S])
+            R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
+                                 for a in A] for s in S])
+
+            Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
+            Q_dict = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+            Q_dictList.append(Q_dict)
+
+        avoidCommitQDicts = {targetA: Q_dictList[0], targetB: Q_dictList[1]}
+        commitQDicts = {targetA: Q_dictList[2], targetB: Q_dictList[3]}
+        return [RLDict, avoidCommitQDicts, commitQDicts]
+
+
+class GetShowIntentionPolices:
+    def __init__(self, runVI, softmaxBeta, intentionInfoScale):
+        self.softmaxBeta = softmaxBeta
+        self.intentionInfoScale = intentionInfoScale
+        self.runVI = runVI
+
+    def __call__(self, targetA, targetB, obstacles):
+        _, _, transitionRL, rewardRL, _, _, RLDict = self.runVI(tuple((targetA, targetB)), obstacles)
+
+        S, A, transitionTableA, rewardA, gamma, Q_dictA, _ = self.runVI(targetA, obstacles)
+        S, A, transitionTableB, rewardB, gamma, Q_dictB, _ = self.runVI(targetB, obstacles)
+
+        getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
+        getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
+        policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
+        policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
+
+        goalPoliciesDict = {'a': policyA, 'b': policyB}
+        commitQDicts = []
+
+        runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
+        runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
+
+        getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, self.intentionInfoScale)
+        getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, self.intentionInfoScale)
+
+        infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
+        infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
+
+        V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
+        V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+
+        visualMap = 0
+        if visualMap:
+            mapValue = 'V_A'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            # y = np.round(y)  # round value
+            y = y.reshape((gridSize, gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
+            # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
+            plt.show()
+
+        for V, R, T, goal in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionTableA, transitionTableB], [targetA, targetB]):
+            V_arr = V_dict_to_array(V, S)
+            T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
+                                 for a in A] for s in S])
+            R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
+                                 for a in A] for s in S])
+
+            Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
+            Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+            commitQDicts.append(Q_dict)
+
+        return [RLDict, commitQDicts]
 
 
 if __name__ == '__main__':

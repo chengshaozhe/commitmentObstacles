@@ -16,7 +16,7 @@ from src.controller import AvoidCommitModel, ModelController, NormalNoise, AwayF
 from src.simulationTrial import NormalTrialWithOnlineIntention, SpecialTrialWithOnlineIntention
 from src.experiment import OnlineIntentionModelSimulation
 from src.design import SamplePositionFromCondition, createNoiseDesignValue, createExpDesignValue, RotatePoint
-from machinePolicy.showIntentionModel import RunVI
+from machinePolicy.showIntentionModel import RunVI, GetShowIntentionPolices
 from src.design import *
 from src.controller import *
 
@@ -109,7 +109,7 @@ def main():
     # conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2 + [randomMaps] * 2
     # targetDiffsList = [0, 1, 2, 'controlAvoid']
 
-    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b, controlCondition1] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b, controlCondition2] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2
+    conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2
     targetDiffsList = [0]
 
     # conditionList = [map1ObsStep0a] + [randomMaps] * 2
@@ -148,9 +148,9 @@ def main():
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    intentionInfoScale = [-1, 1]
-    intensity = 30
-    threshold = 0.2
+    intentionInfoScale = 5
+    intensity = 50
+    threshold = 0.1
 
     for softmaxBeta in softmaxBetaList:
         for i in range(20):
@@ -162,10 +162,13 @@ def main():
 
             inferGoalPosterior = InferGoalPosterior(softmaxBeta)
             calPerceivedIntentions = CalPerceivedIntentions(intensity, threshold)
-            controller = ActWithMonitorIntention(softmaxBeta, calPerceivedIntentions)
+
+            getPolices = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
+
+            # controller = ActWithMonitorIntention(softmaxBeta, calPerceivedIntentions)
+            controller = ActWithMonitorIntentionThreshold(softmaxBeta, calPerceivedIntentions, threshold)
 
             # runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
-
             # # modelController = ModelControllerOnline(softmaxBeta)
             # # modelController = AvoidCommitModel(softmaxBeta, actionSpace, checkBoundary)
             # controller = SampleSoftmaxAction(softmaxBeta)
@@ -178,14 +181,14 @@ def main():
             experimentValues["name"] = "noise" + str(noise) + '_' + "threshold" + str(threshold) + '_' + str(i)
             # resultsDirPath = os.path.join(resultsPath, "Intention-" + "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
 
-            resultsDirPath = os.path.join(resultsPath, "actWithMonitorIntention")
+            resultsDirPath = os.path.join(resultsPath, "actWithInferIntentionShow-RLThreshold" + str(threshold) + 'scale' + str(intentionInfoScale))
 
             if not os.path.exists(resultsDirPath):
                 os.mkdir(resultsDirPath)
 
             writerPath = os.path.join(resultsDirPath, experimentValues["name"] + '.csv')
             writer = WriteDataFrameToCSV(writerPath)
-            experiment = OnlineIntentionModelSimulation(creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, runVI)
+            experiment = OnlineIntentionModelSimulation(creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, getPolices)
             experiment(noiseDesignValues, expDesignValues)
 
 

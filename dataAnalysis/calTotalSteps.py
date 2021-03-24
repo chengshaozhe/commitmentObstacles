@@ -16,7 +16,7 @@ if __name__ == '__main__':
     statsList = []
     stdList = []
     participants = ['human', 'noise0.0673_softmaxBeta2.5', 'max']
-    participants = ['human', 'actWithMonitorIntention']
+    participants = ['human', 'actWithInferIntentionShow-RLThreshold0.1']
 
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)

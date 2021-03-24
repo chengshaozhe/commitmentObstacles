@@ -399,10 +399,38 @@ class ActWithMonitorIntention:
     def __call__(self, intentionPolicies, playerGrid, target1, target2, priorList):
         targets = list([target1, target2])
         perceivedIntentions = self.calPerceivedIntentions(priorList)
+
         targetIndex = list(np.random.multinomial(1, perceivedIntentions)).index(1)
         goal = targets[targetIndex]
 
         actionDict = intentionPolicies[targetIndex][playerGrid, goal]
+        if self.softmaxBeta < 0:
+            action = chooseMaxAcion(actionDict)
+        else:
+            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
+        aimPlayerGrid = tuple(np.add(playerGrid, action))
+        return aimPlayerGrid, action
+
+
+class ActWithMonitorIntentionThreshold:
+    def __init__(self, softmaxBeta, calPerceivedIntentions, intentionThreshold):
+        self.softmaxBeta = softmaxBeta
+        self.calPerceivedIntentions = calPerceivedIntentions
+        self.intentionThreshold = intentionThreshold
+
+    def __call__(self, RLPolicy, intentionPolicies, playerGrid, target1, target2, priorList):
+        targets = list([target1, target2])
+
+        if abs(priorList[0] - priorList[1]) < self.intentionThreshold:
+            # perceivedIntentions = [0.5, 0.5]
+            actionDict = RLPolicy[playerGrid]
+        else:
+            # perceivedIntentions = self.calPerceivedIntentions(priorList)
+            perceivedIntentions = priorList
+            targetIndex = list(np.random.multinomial(1, perceivedIntentions)).index(1)
+            goal = targets[targetIndex]
+            actionDict = intentionPolicies[targetIndex][playerGrid, goal]
+
         if self.softmaxBeta < 0:
             action = chooseMaxAcion(actionDict)
         else:

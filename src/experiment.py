@@ -130,7 +130,7 @@ class IntentionModelSimulation():
 
 
 class OnlineIntentionModelSimulation():
-    def __init__(self, creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, runVI):
+    def __init__(self, creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, getPolices):
         self.creatMap = creatMap
         self.normalTrial = normalTrial
         self.specialTrial = specialTrial
@@ -138,18 +138,20 @@ class OnlineIntentionModelSimulation():
         self.experimentValues = experimentValues
         self.drawImage = drawImage
         self.resultsPath = resultsPath
-        self.runVI = runVI
+        self.getPolices = getPolices
 
     def __call__(self, noiseDesignValues, expDesignValues):
         for trialIndex, [condition, targetDiff] in enumerate(expDesignValues):
             playerGrid, target1, target2, obstacles, avoidCommitPoint, crossPoint = self.creatMap(condition, targetDiff)
 
-            targets = list([target1, target2])
-            intentionPolicies = [self.runVI(goal, obstacles)[-2] for goal in targets]
+            targets = tuple([target1, target2])
+            # goalPolicies = [self.runVI(goal, obstacles)[-2] for goal in targets]
+
+            RLPolicy, intentionPolicies = self.getPolices(target1, target2, obstacles)
             if isinstance(noiseDesignValues[trialIndex], int):
-                results = self.normalTrial(intentionPolicies, target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex], condition.decisionSteps)
+                results = self.normalTrial(RLPolicy, intentionPolicies, target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex], condition.decisionSteps)
             else:
-                results = self.specialTrial(intentionPolicies, target1, target2, playerGrid, obstacles)
+                results = self.specialTrial(RLPolicy, intentionPolicies, target1, target2, playerGrid, obstacles)
 
             results["conditionName"] = condition.name
             results["decisionSteps"] = str(condition.decisionSteps)

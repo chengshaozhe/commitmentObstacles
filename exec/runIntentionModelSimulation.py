@@ -148,7 +148,7 @@ def main():
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    intentionInfoScale = [-1, 1]
+    intentionInfoScale = [-0.5, 0.5]
 
     for softmaxBeta in softmaxBetaList:
         for i in range(20):
@@ -172,7 +172,7 @@ def main():
             experimentValues["name"] = "noise" + str(noise) + '_' + "intentionInfoScale" + str(intentionInfoScale[1]) + '_' + str(i)
             # resultsDirPath = os.path.join(resultsPath, "Intention-" + "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
 
-            resultsDirPath = os.path.join(resultsPath, "showIntention2")
+            resultsDirPath = os.path.join(resultsPath, "showIntention3")
 
             if not os.path.exists(resultsDirPath):
                 os.mkdir(resultsDirPath)
