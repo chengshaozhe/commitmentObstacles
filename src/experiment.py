@@ -130,13 +130,12 @@ class IntentionModelSimulation():
 
 
 class OnlineIntentionModelSimulation():
-    def __init__(self, creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, getPolices):
+    def __init__(self, creatMap, normalTrial, specialTrial, writer, experimentValues, resultsPath, getPolices):
         self.creatMap = creatMap
         self.normalTrial = normalTrial
         self.specialTrial = specialTrial
         self.writer = writer
         self.experimentValues = experimentValues
-        self.drawImage = drawImage
         self.resultsPath = resultsPath
         self.getPolices = getPolices
 

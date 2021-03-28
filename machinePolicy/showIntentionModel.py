@@ -333,7 +333,7 @@ class GetLikelihoodRewardFunction:
         return(probNextState)
 
 
-class RunIntentionModel:
+class RunAvoidAndShowIntentionModel:
     def __init__(self, runVI, softmaxBeta, intentionInfoScale):
         self.softmaxBeta = softmaxBeta
         self.runVI = runVI
@@ -433,13 +433,13 @@ class RunShowIntentionModel:
 
         # print(rewardRL[(3, 6)][(0, 1)][(3, 7)], rewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardA[(3, 6)][(0, 1)][(3, 7)], infoRewardB[(3, 6)][(0, 1)][(3, 7)])
 
-        runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
-        getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
-        infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
-        infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
+        # runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=tuple((targetA, targetB)), obstacles=obstacles)
+        # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
+        # infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
+        # infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
 
-        V_A = runValueIteration(S, A, transitionRL, infoRewardA)
-        V_B = runValueIteration(S, A, transitionRL, infoRewardB)
+        # V_A = runValueIteration(S, A, transitionRL, infoRewardA)
+        # V_B = runValueIteration(S, A, transitionRL, infoRewardB)
 
         visualMap = 0
         if visualMap:

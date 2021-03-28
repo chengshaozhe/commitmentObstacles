@@ -90,7 +90,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     # participants = ['human', 'RL']
     # participants = ['noise0.0673_softmaxBeta2.5']
-    participants = ['human', 'actWithInferIntentionShow-RLThreshold0.1']
+    participants = ['human', 'actWithInferIntentionShow-RLThreshold0scale4.5']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]

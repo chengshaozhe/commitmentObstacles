@@ -21,7 +21,7 @@ from src.design import *
 from src.controller import *
 
 
-def main():
+def runExp(condtion, renderOn=0):
     picturePath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'pictures'))
     resultsPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'results'))
     machinePolicyPath = os.path.abspath(os.path.join(os.path.join(os.getcwd(), os.pardir), 'machinePolicy'))
@@ -30,33 +30,34 @@ def main():
     gridSize = 15
     bounds = [0, 0, gridSize - 1, gridSize - 1]
 
-    screenWidth = 600
-    screenHeight = 600
-    fullScreen = False
-    renderOn = False
-    initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
-    screen = initializeScreen()
-    pg.mouse.set_visible(False)
+    if renderOn:
+        screenWidth = 600
+        screenHeight = 600
+        fullScreen = False
+        initializeScreen = InitializeScreen(screenWidth, screenHeight, fullScreen)
+        screen = initializeScreen()
+        pg.mouse.set_visible(False)
 
-    leaveEdgeSpace = 2
-    lineWidth = 1
-    backgroundColor = [205, 255, 204]
-    lineColor = [0, 0, 0]
-    targetColor = [255, 50, 50]
-    playerColor = [50, 50, 255]
-    targetRadius = 10
-    playerRadius = 10
-    textColorTuple = (255, 50, 50)
+        leaveEdgeSpace = 2
+        lineWidth = 1
+        backgroundColor = [205, 255, 204]
+        lineColor = [0, 0, 0]
+        targetColor = [255, 50, 50]
+        playerColor = [50, 50, 255]
+        targetRadius = 10
+        playerRadius = 10
+        textColorTuple = (255, 50, 50)
 
-    introductionImage = pg.image.load(os.path.join(picturePath, 'introduction.png'))
-    finishImage = pg.image.load(os.path.join(picturePath, 'finish.png'))
-    introductionImage = pg.transform.scale(introductionImage, (screenWidth, screenHeight))
-    finishImage = pg.transform.scale(finishImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
-    drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
-    drawText = DrawText(screen, drawBackground)
-    drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
-    drawImage = DrawImage(screen)
-
+        introductionImage = pg.image.load(os.path.join(picturePath, 'introduction.png'))
+        finishImage = pg.image.load(os.path.join(picturePath, 'finish.png'))
+        introductionImage = pg.transform.scale(introductionImage, (screenWidth, screenHeight))
+        finishImage = pg.transform.scale(finishImage, (int(screenWidth * 2 / 3), int(screenHeight / 4)))
+        drawBackground = DrawBackground(screen, gridSize, leaveEdgeSpace, backgroundColor, lineColor, lineWidth, textColorTuple)
+        drawText = DrawText(screen, drawBackground)
+        drawNewState = DrawNewState(screen, drawBackground, targetColor, playerColor, targetRadius, playerRadius)
+        drawImage = DrawImage(screen)
+    else:
+        drawNewState = None
 # condition maps
     condition = namedtuple('condition', 'name decisionSteps initAgent avoidCommitPoint crossPoint targetDisToCrossPoint fixedObstacles')
 
@@ -118,6 +119,7 @@ def main():
     numBlocks = 3 * n
     expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
     numExpTrial = len(expDesignValues)
+    print(numExpTrial)
 
     # conditionList = [condition2]
     specialDesign = [specialCondition, 0]
@@ -134,63 +136,71 @@ def main():
     creatMap = CreatMap(rotateAngles, gridSize, rotatePoint, numOfObstacles)
 
     checkBoundary = CheckBoundary([0, gridSize - 1], [0, gridSize - 1])
-    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
-    normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
-    specialNoise = backToCrossPointNoise
-
-    # inferGoalPosterior = InferGoalPosterior(goalPolicy)
-
-    softmaxBetaList = [2.5]
     noise = 0.067
     gamma = 0.9
     goalReward = [30, 30]
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
+    softmaxBeta = 2.5
 
-    intentionInfoScale = 4.5
-    intensity = 50
-    threshold = 0
+    normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
+    specialNoise = backToCrossPointNoise
 
-    for softmaxBeta in softmaxBetaList:
-        for i in range(20):
-            print(i)
+    threshold = condtion['threshold']
+    infoScale = condtion['infoScale']
 
-            expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
-            random.shuffle(expDesignValues)
-            expDesignValues.append(specialDesign)
+# serial
+    # thresholdList = np.array([4, 6, 8, 10, 12]) * 0.01
+    # infoScaleList = [2, 3, 4, 5, 6]
+    # for (threshold, infoScale) in list(it.product(thresholdList, infoScaleList)):
+    # print(threshold, infoScale)
 
-            inferGoalPosterior = InferGoalPosterior(softmaxBeta)
-            calPerceivedIntentions = CalPerceivedIntentions(intensity, threshold)
+    print(condtion)
+    for i in range(20):
+        print(i)
+        expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
+        random.shuffle(expDesignValues)
+        expDesignValues.append(specialDesign)
 
-            getPolices = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
+        inferGoalPosterior = InferGoalPosterior(softmaxBeta)
+        getPolices = GetShowIntentionPolices(runVI, softmaxBeta, infoScale)
+        controller = ActWithMonitorIntentionThreshold(softmaxBeta, threshold)
 
-            # controller = ActWithMonitorIntention(softmaxBeta, calPerceivedIntentions)
-            controller = ActWithMonitorIntentionThreshold(softmaxBeta, calPerceivedIntentions, threshold)
+        normalTrial = NormalTrialWithOnlineIntention(renderOn, controller, normalNoise, checkBoundary, inferGoalPosterior, drawNewState)
+        specialTrial = SpecialTrialWithOnlineIntention(renderOn, controller, specialNoise, checkBoundary, inferGoalPosterior, drawNewState)
 
-            # runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
-            # # modelController = ModelControllerOnline(softmaxBeta)
-            # # modelController = AvoidCommitModel(softmaxBeta, actionSpace, checkBoundary)
-            # controller = SampleSoftmaxAction(softmaxBeta)
+        experimentValues = co.OrderedDict()
+        experimentValues["name"] = "intentionModel" + str(i)
+        experimentValues["threshold"] = threshold
+        experimentValues["infoScale"] = infoScale
 
-            renderOn = 0
-            normalTrial = NormalTrialWithOnlineIntention(renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary, inferGoalPosterior)
-            specialTrial = SpecialTrialWithOnlineIntention(renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary, inferGoalPosterior)
+        modelResultsPath = os.path.join(resultsPath, "intentionModel")
+        if not os.path.exists(modelResultsPath):
+            os.mkdir(modelResultsPath)
 
-            experimentValues = co.OrderedDict()
-            experimentValues["name"] = "noise" + str(noise) + '_' + "threshold" + str(threshold) + '_' + str(i)
-            # resultsDirPath = os.path.join(resultsPath, "Intention-" + "noise" + str(noise) + '_' + "softmaxBeta" + str(softmaxBeta))
+        resultsDirPath = os.path.join(modelResultsPath, "threshold" + str(threshold) + 'infoScale' + str(infoScale))
+        if not os.path.exists(resultsDirPath):
+            os.mkdir(resultsDirPath)
 
-            resultsDirPath = os.path.join(resultsPath, "actWithInferIntentionShow-RLThreshold" + str(threshold) + 'scale' + str(intentionInfoScale))
-
-            if not os.path.exists(resultsDirPath):
-                os.mkdir(resultsDirPath)
-
-            writerPath = os.path.join(resultsDirPath, experimentValues["name"] + '.csv')
-            writer = WriteDataFrameToCSV(writerPath)
-            experiment = OnlineIntentionModelSimulation(creatMap, normalTrial, specialTrial, writer, experimentValues, drawImage, resultsPath, getPolices)
-            experiment(noiseDesignValues, expDesignValues)
+        writerPath = os.path.join(resultsDirPath, experimentValues["name"] + '.csv')
+        writer = WriteDataFrameToCSV(writerPath)
+        experiment = OnlineIntentionModelSimulation(creatMap, normalTrial, specialTrial, writer, experimentValues, modelResultsPath, getPolices)
+        experiment(noiseDesignValues, expDesignValues)
 
 
 if __name__ == "__main__":
-    main()
+    # runExp(condition, renderOn=1)
+    import pathos.multiprocessing as mp
+    manipulatedVariables = co.OrderedDict()
+    manipulatedVariables['threshold'] = [4, 6, 8, 10, 12]
+    manipulatedVariables['infoScale'] = [3, 4, 5, 6, 7]
+    productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
+    parametersAllCondtion = [dict(list(specificValueParameter)) for specificValueParameter in productedValues]
+
+    numCpuCores = os.cpu_count()
+    numCpuToUse = int(numCpuCores)
+    print(numCpuToUse)
+    runPool = mp.Pool(numCpuToUse)
+    runPool.map(runExp, parametersAllCondtion)

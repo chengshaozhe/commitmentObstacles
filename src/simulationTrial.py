@@ -341,11 +341,10 @@ class SpecialTrialOnline():
 
 
 class NormalTrialWithOnlineIntention():
-    def __init__(self, renderOn, controller, drawNewState, drawText, normalNoise, checkBoundary, inferGoalPosterior):
+    def __init__(self, renderOn, controller, normalNoise, checkBoundary, inferGoalPosterior, drawNewState=None):
         self.renderOn = renderOn
         self.controller = controller
         self.drawNewState = drawNewState
-        self.drawText = drawText
         self.normalNoise = normalNoise
         self.checkBoundary = checkBoundary
         self.inferGoalPosterior = inferGoalPosterior
@@ -367,6 +366,8 @@ class NormalTrialWithOnlineIntention():
         realPlayerGrid = initialPlayerGrid
         pause = True
         priorList = self.initPrior
+        posteriorData = [priorList]
+
         while pause:
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
@@ -374,6 +375,8 @@ class NormalTrialWithOnlineIntention():
 
             aimPlayerGrid, aimAction = self.controller(RLPolicy, intentionPolicies, realPlayerGrid, bean1Grid, bean2Grid, priorList)
             posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, intentionPolicies)
+            posteriorData.append(posteriorList)
+
             priorList = posteriorList
 
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
@@ -384,7 +387,7 @@ class NormalTrialWithOnlineIntention():
                 noisePlayerGrid = tuple(trajectory[-1])
             realPlayerGrid = self.checkBoundary(noisePlayerGrid)
             reactionTime.append(time.get_ticks() - initialTime)
-            trajectory.append(list(realPlayerGrid))
+            trajectory.append(tuple(realPlayerGrid))
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
@@ -395,15 +398,16 @@ class NormalTrialWithOnlineIntention():
         results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)
+        results["posteriors"] = str(posteriorData)
+
         return results
 
 
 class SpecialTrialWithOnlineIntention():
-    def __init__(self, renderOn, controller, drawNewState, drawText, specialNoise, checkBoundary, inferGoalPosterior):
+    def __init__(self, renderOn, controller, specialNoise, checkBoundary, inferGoalPosterior, drawNewState=None):
         self.renderOn = renderOn
         self.controller = controller
         self.drawNewState = drawNewState
-        self.drawText = drawText
         self.specialNoise = specialNoise
         self.checkBoundary = checkBoundary
         self.inferGoalPosterior = inferGoalPosterior
@@ -425,6 +429,8 @@ class SpecialTrialWithOnlineIntention():
         pause = True
         realPlayerGrid = initialPlayerGrid
         priorList = self.initPrior
+        posteriorData = [priorList]
+
         while pause:
             if self.renderOn:
                 self.drawNewState(bean1Grid, bean2Grid, realPlayerGrid, obstacles)
@@ -432,8 +438,9 @@ class SpecialTrialWithOnlineIntention():
 
             aimPlayerGrid, aimAction = self.controller(RLPolicy, intentionPolicies, realPlayerGrid, bean1Grid, bean2Grid, priorList)
             posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, intentionPolicies)
-            priorList = posteriorList
+            posteriorData.append(posteriorList)
 
+            priorList = posteriorList
             stepCount = stepCount + 1
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
             goalList.append(goal)
@@ -450,7 +457,7 @@ class SpecialTrialWithOnlineIntention():
                 realPlayerGrid = tuple(trajectory[-1])
 
             reactionTime.append(time.get_ticks() - initialTime)
-            trajectory.append(list(realPlayerGrid))
+            trajectory.append(tuple(realPlayerGrid))
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
@@ -461,4 +468,6 @@ class SpecialTrialWithOnlineIntention():
         results["aimPlayerGridList"] = str(aimPlayerGridList)
         results["noisePoint"] = str(noiseStep)
         results["goal"] = str(goalList)
+        results["posteriors"] = str(posteriorData)
+
         return results
