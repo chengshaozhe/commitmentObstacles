@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
 
-    participants = ['humanTime', 'noise0.067_softmaxBeta8']
+    participants = ['human', 'RL']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -78,10 +78,10 @@ if __name__ == '__main__':
 
     dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: isTrajHasAvoidPoints(eval(x['trajectory']), eval(x['aimAction']), eval(x['playerGrid']), eval(x['target1']), eval(x['target2']), x['decisionSteps'], x['conditionName']), axis=1)
 
-    # resultDf = dfExpTrail[dfExpTrail['participantsType'] == 'human']
-    # crosstab, res = researchpy.crosstab(resultDf['hasAvoidPoint'], resultDf['decisionSteps'], test="chi-square")
-    # print(crosstab)
-    # print(res)
+    resultDf = df[df['participantsType'] == 'human']
+    crosstab, res = researchpy.crosstab(resultDf['hasAvoidPoint'], resultDf['decisionSteps'], test="chi-square")
+    print(crosstab)
+    print(res)
 
     # human vs machine in diff decision steps[2,4,6]
     # decisionStep = 4
@@ -109,7 +109,3 @@ if __name__ == '__main__':
 
     res = stat()
     res.anova_stat(df=statDF, res_var='avoidCommitPercent', anova_model='avoidCommitPercent~C(participantsType)+C(decisionSteps)+C(participantsType):C(decisionSteps)')
-
-
-
-

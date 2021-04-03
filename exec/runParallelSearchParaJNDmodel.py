@@ -119,7 +119,7 @@ def runExp(condtion, renderOn=0):
     numBlocks = 3 * n
     expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
     numExpTrial = len(expDesignValues)
-    print(numExpTrial)
+    # print(numExpTrial)
 
     # conditionList = [condition2]
     specialDesign = [specialCondition, 0]
@@ -157,7 +157,7 @@ def runExp(condtion, renderOn=0):
     # for (threshold, infoScale) in list(it.product(thresholdList, infoScaleList)):
     # print(threshold, infoScale)
 
-    print(condtion)
+    # print(condtion)
     for i in range(20):
         print(i)
         expDesignValues = [[condition, diff] for condition in conditionList for diff in targetDiffsList] * numBlocks
@@ -194,13 +194,12 @@ if __name__ == "__main__":
     # runExp(condition, renderOn=1)
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
-    manipulatedVariables['threshold'] = [4, 6, 8, 10, 12]
+    manipulatedVariables['threshold'] = [0.04, 0.06, 0.08, 0.10, 0.12]
     manipulatedVariables['infoScale'] = [3, 4, 5, 6, 7]
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
     parametersAllCondtion = [dict(list(specificValueParameter)) for specificValueParameter in productedValues]
 
     numCpuCores = os.cpu_count()
     numCpuToUse = int(numCpuCores)
-    print(numCpuToUse)
     runPool = mp.Pool(numCpuToUse)
     runPool.map(runExp, parametersAllCondtion)

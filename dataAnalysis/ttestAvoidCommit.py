@@ -79,8 +79,8 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     participants = ['human', 'RL']
-    # participants = ['RL']
-    # participants = ['human']
+    participants = ['human0331']
+    # participants = ['intentionModel2/threshold0.08infoScale9']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -100,6 +100,11 @@ if __name__ == '__main__':
     # df = df[(df['targetDiff'] == 0) & (df['isDecisionStepInZone'] == 1)]
 
     df = df[(df['targetDiff'] == '0')]
+    df = df[df['decisionSteps'] == 6]
+
+# first half
+    # df = df[df.index < 144]
+
     # dfExpTrail = df[(df['conditionName'] == 'expCondition2')]
 
     dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
@@ -141,8 +146,13 @@ if __name__ == '__main__':
         stats = pg.ttest(statDF['ShowCommitmentPercent'], 0.5)
         print(stats)
         print('mean:', np.mean(statDF['ShowCommitmentPercent']))
+        # print(stats['p-val'])
+        # print(stats['CI95%'])
 
-        # print(stats['p-val'], stats['CI95%'])
+        from scipy import stats
+        pop_mean = 0.5
+        t, p_twotail = stats.ttest_1samp(statDF['ShowCommitmentPercent'], pop_mean)
+        print('t=', t, 'p=', p_twotail)
 
         # from scipy import stats
         # a = stats.ttest_1samp(statDF['ShowCommitmentPercent'], 0.5)
@@ -159,4 +169,4 @@ if __name__ == '__main__':
         handles, labels = ax.get_legend_handles_labels()
         plt.legend(loc='best')
         plt.ylim((0, 1))
-        plt.show()
+        # plt.show()
