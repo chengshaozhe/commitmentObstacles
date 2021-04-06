@@ -350,7 +350,7 @@ class NormalTrialWithOnlineIntention():
         self.inferGoalPosterior = inferGoalPosterior
         self.initPrior = [0.5, 0.5]
 
-    def __call__(self, RLPolicy, intentionPolicies, bean1Grid, bean2Grid, playerGrid, obstacles, designValues, decisionSteps):
+    def __call__(self, RLPolicy, goalQDict, intentionPolicies, bean1Grid, bean2Grid, playerGrid, obstacles, designValues, decisionSteps):
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
@@ -374,7 +374,7 @@ class NormalTrialWithOnlineIntention():
                 pg.time.wait(100)
 
             aimPlayerGrid, aimAction = self.controller(RLPolicy, intentionPolicies, realPlayerGrid, bean1Grid, bean2Grid, priorList)
-            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, intentionPolicies)
+            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
             posteriorData.append(posteriorList)
 
             priorList = posteriorList
@@ -413,7 +413,7 @@ class SpecialTrialWithOnlineIntention():
         self.inferGoalPosterior = inferGoalPosterior
         self.initPrior = [0.5, 0.5]
 
-    def __call__(self, RLPolicy, intentionPolicies, bean1Grid, bean2Grid, playerGrid, obstacles):
+    def __call__(self, RLPolicy, goalQDict, intentionPolicies, bean1Grid, bean2Grid, playerGrid, obstacles):
         initialPlayerGrid = tuple(playerGrid)
         initialTime = time.get_ticks()
         reactionTime = list()
@@ -437,7 +437,7 @@ class SpecialTrialWithOnlineIntention():
                 pg.time.wait(100)
 
             aimPlayerGrid, aimAction = self.controller(RLPolicy, intentionPolicies, realPlayerGrid, bean1Grid, bean2Grid, priorList)
-            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, intentionPolicies)
+            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
             posteriorData.append(posteriorList)
 
             priorList = posteriorList

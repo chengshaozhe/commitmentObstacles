@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
     participants = ['human', 'RL']
-    participants = ['human', 'actWithInferIntentionShow-RLThreshold0.1scale4.5']
+    participants = ['human', 'intentionModel/threshold0.1infoScale9']
 
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)

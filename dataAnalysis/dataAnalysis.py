@@ -10,7 +10,9 @@ def stableSoftmax(x):
 
 
 def calculateSoftmaxProbability(acionValues, beta):
-    newProbabilityList = list(np.divide(np.exp(np.multiply(beta, acionValues)), np.sum(np.exp(np.multiply(beta, acionValues)))))
+    exponents = np.multiply(beta, acionValues)
+    exponents = np.array([min(700, exponent) for exponent in exponents])
+    newProbabilityList = list(np.divide(np.exp(exponents), np.sum(np.exp(exponents))))
     return newProbabilityList
 
 

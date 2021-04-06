@@ -481,13 +481,14 @@ class GetShowIntentionPolices:
         S, A, transitionTableA, rewardA, gamma, Q_dictA, _ = self.runVI(targetA, obstacles)
         S, A, transitionTableB, rewardB, gamma, Q_dictB, _ = self.runVI(targetB, obstacles)
 
+        goalQDict = [Q_dictA, Q_dictB]
+
         getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
         getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
         policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
         policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
-
         goalPoliciesDict = {'a': policyA, 'b': policyB}
-        commitQDicts = []
+        intentionQDicts = []
 
         runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
         runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
@@ -522,9 +523,9 @@ class GetShowIntentionPolices:
 
             Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
             Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
-            commitQDicts.append(Q_dict)
+            intentionQDicts.append(Q_dict)
 
-        return [RLDict, commitQDicts]
+        return [RLDict, goalQDict, intentionQDicts]
 
 
 if __name__ == '__main__':
@@ -539,7 +540,7 @@ if __name__ == '__main__':
 
     softmaxBeta = 2.5
     intentionInfoScale = [0.2]
-    runModel = RunIntentionModel(runVI, softmaxBeta, intentionInfoScale)
+    runModel = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
 
     goalStates = ((4, 9), (9, 4))
     obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (4, 2), (5, 2), (0, 3), (0, 4), (0, 5), (3, 0), (4, 0), (5, 0)]]

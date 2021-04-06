@@ -191,6 +191,19 @@ def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
     return np.all(isStepInZone)
 
 
+def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
+    goalIndex = None
+    if trajectory[-1] == target1:
+        goalIndex = 0
+    elif trajectory[-1] == target2:
+        goalIndex = 1
+    else:
+        print("trajectory no goal reach! ")
+
+    goalPosteriorList = [posterior[goalIndex] for posterior in posteriors]
+    return goalPosteriorList
+
+
 if __name__ == '__main__':
     gridSize = 15
     noise = 0.067
@@ -208,9 +221,11 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
 
     # participants = ['human', 'RL']
-    participants = ['human', 'showIntention2']
+    # participants = ['human', 'intentionModel/threshold0.5infoScale11']
+    participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
+
     # decisionStep = 2
-    for decisionStep in [1,0]:
+    for decisionStep in [6]:#, 4, 2, 1, 0]:
         statsList = []
         stdList = []
         statDFList = []
@@ -226,11 +241,17 @@ if __name__ == '__main__':
             df = df[(df['decisionSteps'] == decisionStep)]
 
             df["trajLength"] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
+            # df = df[(df["trajLength"] > 14)]
 
-            df = df[df["trajLength"] > 14]
+            df = df[(df["trajLength"] > 14) & (df["trajLength"] < 25)]
             # df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
-            df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+            # df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+
+            if participant == 'human':
+                df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+            else:
+                df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
 
     # interpolation
             # xnew = np.linspace(0., 1., 15)
@@ -281,7 +302,7 @@ if __name__ == '__main__':
         ax.spines['right'].set_color('none')
         ax.spines['top'].set_color('none')
 
-     # sig area line
+    # sig area line
         # xnewSig = xnew[sigArea]
         # ySig = [stats[sigArea] for stats in statsList]
         # for sigLine in [xnewSig[0], xnewSig[-1]]:
@@ -295,10 +316,10 @@ if __name__ == '__main__':
         plt.xticks(fontsize=12, color='black')
         plt.yticks(fontsize=12, color='black')
         plt.rcParams['svg.fonttype'] = 'none'
-        plt.savefig('/Users/chengshaozhe/Downloads/exp2b-{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
+        # plt.savefig('/Users/chengshaozhe/Downloads/exp2b-thershold0.5-step{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
 
         # plt.title('Inferred Goal Through Time', fontsize=fontSize, color='black')
-        # plt.show()
+        plt.show()
 
     # test
         # condition1 = statDFList[0].T

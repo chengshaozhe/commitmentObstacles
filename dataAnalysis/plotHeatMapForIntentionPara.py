@@ -88,7 +88,7 @@ if __name__ == '__main__':
     heatMap = heatMapDf.pivot("threshold", "infoScale", "RMSE")
     ax = sns.heatmap(heatMap, cmap='RdBu', annot=True, linewidths=.5)
     plt.title("RMSE")
-    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2With0.5.jpg')
+    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2With0.5.jpg', dpi=600)
     plt.show()
 
     # statDF['participantsType'] = statDF.apply(lambda x: calParticipantType(x['name']), axis=1)

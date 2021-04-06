@@ -92,7 +92,7 @@ if __name__ == '__main__':
     # participants = ['noise0.0673_softmaxBeta2.5']
     # participants = ['human', 'actWithInferIntentionShow-RLThreshold0.08scale5.5']
 
-    participants = ['human', 'intentionModel2/threshold1infoScale0']
+    participants = ['human', 'intentionModel/threshold0.1infoScale9']
     # participants = ['human0331', 'RL']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
@@ -184,8 +184,9 @@ if __name__ == '__main__':
 
     for i in stats.index:
         m, c, s = stats.loc[i]
-        sem_hi.append(m + s / np.sqrt(c))
-        sem_lo.append(m - s / np.sqrt(c))
+        t_ci = 2.086  # two-tailed 95%
+        sem_hi.append(m + t_ci * s / np.sqrt(c))
+        sem_lo.append(m - t_ci * s / np.sqrt(c))
 
     stats['sem_hi'] = sem_hi
     stats['sem_lo'] = sem_lo

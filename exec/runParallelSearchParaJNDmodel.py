@@ -176,7 +176,7 @@ def runExp(condtion, renderOn=0):
         experimentValues["threshold"] = threshold
         experimentValues["infoScale"] = infoScale
 
-        modelResultsPath = os.path.join(resultsPath, "intentionModel")
+        modelResultsPath = os.path.join(resultsPath, "intentionModel3")
         if not os.path.exists(modelResultsPath):
             os.mkdir(modelResultsPath)
 
@@ -194,8 +194,8 @@ if __name__ == "__main__":
     # runExp(condition, renderOn=1)
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
-    manipulatedVariables['threshold'] = [0.04, 0.06, 0.08, 0.10, 0.12]
-    manipulatedVariables['infoScale'] = [3, 4, 5, 6, 7]
+    manipulatedVariables['threshold'] = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    manipulatedVariables['infoScale'] = [5, 6, 7, 8, 9, 10]
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
     parametersAllCondtion = [dict(list(specificValueParameter)) for specificValueParameter in productedValues]
 
