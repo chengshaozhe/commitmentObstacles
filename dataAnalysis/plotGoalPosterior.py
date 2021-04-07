@@ -199,7 +199,6 @@ def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
         goalIndex = 1
     else:
         print("trajectory no goal reach! ")
-
     goalPosteriorList = [posterior[goalIndex] for posterior in posteriors]
     return goalPosteriorList
 
@@ -223,9 +222,10 @@ if __name__ == '__main__':
     # participants = ['human', 'RL']
     # participants = ['human', 'intentionModel/threshold0.5infoScale11']
     participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
+    participants = ['intentionModelWithNaiveInfer/threshold0.3infoScale5']
 
     # decisionStep = 2
-    for decisionStep in [6]:#, 4, 2, 1, 0]:
+    for decisionStep in [6]:  # , 4, 2, 1, 0]:
         statsList = []
         stdList = []
         statDFList = []
@@ -241,9 +241,9 @@ if __name__ == '__main__':
             df = df[(df['decisionSteps'] == decisionStep)]
 
             df["trajLength"] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
-            # df = df[(df["trajLength"] > 14)]
+            df = df[(df["trajLength"] > 14)]
 
-            df = df[(df["trajLength"] > 14) & (df["trajLength"] < 25)]
+            # df = df[(df["trajLength"] > 14) & (df["trajLength"] < 25)]
             # df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
             # df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)

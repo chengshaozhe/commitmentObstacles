@@ -90,10 +90,10 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     # participants = ['human', 'RL']
     # participants = ['noise0.0673_softmaxBeta2.5']
-    # participants = ['human', 'actWithInferIntentionShow-RLThreshold0.08scale5.5']
-
-    participants = ['human', 'intentionModel/threshold0.1infoScale9']
     # participants = ['human0331', 'RL']
+    participants = ['human', 'intentionModelWithSophisticatedInfer/threshold0.1infoScale9']
+
+    # participants = ['human', 'intentionModelWithNaiveInfer/threshold0.5infoScale11']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     # df = df[df.index < 144]
 
     # df['participantsType'] = ['RL Agent' if 'noise' in name else 'Human' for name in df['name']]
-
     df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
+    df['totalStep'] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
 
     #!!!!!!
     # df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
@@ -152,7 +152,7 @@ if __name__ == '__main__':
     # dfExpTrail.to_csv('dfExpTrail.csv')
     sns.set_theme(style="white")
     plt.rcParams['figure.figsize'] = (8, 6)
-    plt.rcParams['figure.dpi'] = 200
+    # plt.rcParams['figure.dpi'] = 200
 
     colorList = [(0.8392156862745098, 0.15294117647058825, 0.1568627450980392),  # red
                  (0.12156862745098039, 0.4666666666666667, 0.7058823529411765)]  # blue
@@ -179,21 +179,23 @@ if __name__ == '__main__':
     # print(stats)
     # print('-' * 50)
 
-    sem_hi = []
-    sem_lo = []
+    ci_lo = []
+    ci_hi = []
 
     for i in stats.index:
         m, c, s = stats.loc[i]
         t_ci = 2.086  # two-tailed 95%
-        sem_hi.append(m + t_ci * s / np.sqrt(c))
-        sem_lo.append(m - t_ci * s / np.sqrt(c))
+        ci_lo.append(m - t_ci * s / np.sqrt(c))
+        ci_hi.append(m + t_ci * s / np.sqrt(c))
 
-    stats['sem_hi'] = sem_hi
-    stats['sem_lo'] = sem_lo
+    stats['ci_lo'] = ci_lo
+    stats['ci_hi'] = ci_hi
+
     pd.set_option('display.max_columns', None)
     print(stats)
+    print(df.groupby('participantsType')["totalStep"].mean())
 
-    yerrList = [stats['mean'] - stats['sem_lo'], stats['sem_hi'] - stats['mean']]
+    yerrList = [stats['mean'] - stats['ci_lo'], stats['ci_hi'] - stats['mean']]
     plt.errorbar(x=xList, y=yList, yerr=yerrList, fmt='none', c='k', elinewidth=2, capsize=5)
 
     ax.spines['right'].set_color('none')
@@ -215,3 +217,4 @@ if __name__ == '__main__':
     # plt.savefig('/Users/chengshaozhe/Downloads/exp2a.svg', dpi=600, format='svg')
 
     plt.show()
+

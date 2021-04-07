@@ -31,14 +31,14 @@ def calParticipantType(name):
 
 
 if __name__ == '__main__':
-    resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results/intentionModel')
+    resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results/intentionModelWithNaiveInfer')
     # participants = ['human', 'RL']
 
-    # humansStats = [42.50, 43.95, 63.80, 83.75, 77.60]
+    humansStats = [42.50, 43.95, 63.80, 83.75, 77.60]
 
     # humansStats = [48.80, 46.35, 68.90, 83.10, 81.45] #obstacle 1
 
-    humansStats = [50, 50, 63.80, 83.75, 77.60]
+    # humansStats = [50, 50, 63.80, 83.75, 77.60]
 
     dirs = os.listdir(resultsPath)[1:]
     participants = [d for d in dirs if not d[0] == '.']
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     heatMapDf = heatMapDf.reset_index()
 
     def calRMSE(x, y):
-        return np.sqrt(np.power(np.array(x) - np.array(y), 2)).mean()
+        return np.sqrt(np.power(np.array(x) - np.array(y), 2).mean())
     print(heatMapDf)
 
     heatMapDf['RMSE'] = heatMapDf.apply(lambda x: calRMSE(x['ShowCommitmentList'][1], humansStats), axis=1)
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     heatMap = heatMapDf.pivot("threshold", "infoScale", "RMSE")
     ax = sns.heatmap(heatMap, cmap='RdBu', annot=True, linewidths=.5)
     plt.title("RMSE")
-    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2With0.5.jpg', dpi=600)
+    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2NaiveInfer.jpg', dpi=600)
     plt.show()
 
     # statDF['participantsType'] = statDF.apply(lambda x: calParticipantType(x['name']), axis=1)

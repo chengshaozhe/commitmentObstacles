@@ -391,6 +391,8 @@ class NormalTrialWithOnlineIntention():
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
+            if len(trajectory) > 30:
+                break
 
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
@@ -461,6 +463,8 @@ class SpecialTrialWithOnlineIntention():
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
+            if len(trajectory) > 30:
+                break
 
         results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
