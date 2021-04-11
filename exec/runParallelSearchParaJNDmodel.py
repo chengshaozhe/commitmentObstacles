@@ -182,7 +182,7 @@ def runExp(condtion, renderOn=0):
         if not os.path.exists(modelResultsPath):
             os.mkdir(modelResultsPath)
 
-        resultsDirPath = os.path.join(modelResultsPath, "threshold" + str(threshold) + 'infoScale' + str(infoScale))
+        resultsDirPath = os.path.join(modelResultsPath, "threshold" + str(threshold) + 'infoScale' + str(infoScale) + "softmaxBeta" + str(softmaxBeta))
         if not os.path.exists(resultsDirPath):
             os.mkdir(resultsDirPath)
 
