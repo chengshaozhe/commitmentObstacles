@@ -86,14 +86,27 @@ def calParticipantType(name):
     return participantsType
 
 
+def isValidTraj(trajectory, target1, target2):
+    trajectory = list(map(tuple, trajectory))
+    finalState = trajectory[-1]
+    if finalState == target1 or finalState == target2:
+        return True
+    else:
+        return False
+
+
 if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
-    # participants = ['human', 'RL']
     # participants = ['noise0.0673_softmaxBeta2.5']
     # participants = ['human0331', 'RL']
-    participants = ['human', 'intentionModelWithSophisticatedInfer/threshold0.1infoScale9']
-
+    # participants = ['human', 'intentionModelWithSpMonitor/threshold0infoScale5.5']
     # participants = ['human', 'intentionModelWithNaiveInfer/threshold0.5infoScale11']
+    # participants = ['human', 'intentionModel3/threshold0.5infoScale3']
+    # participants = ['human']
+    # participants = ['human', 'RL']
+    participants = ['human', 'intentionModelChosen/threshold0.01infoScale8.5']
+
+    # participants = ['human', 'intentionModel/threshold0.08infoScale8.5']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -102,35 +115,38 @@ if __name__ == '__main__':
     # first half
     # df = df[df.index < 144]
 
+    df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
+
+    df = df[(df['targetDiff'] == '0')]
+
     # df['participantsType'] = ['RL Agent' if 'noise' in name else 'Human' for name in df['name']]
     df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
     df['totalStep'] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
 
-    #!!!!!!
-    # df['name'] = df.apply(lambda x: x['name'][:-1], axis=1)
+    df['isValidTraj'] = df.apply(lambda x: isValidTraj(eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+    df = df[df['isValidTraj'] == 1]
 
-    df['isDecisionStepInZone'] = df.apply(lambda x: isDecisionStepInZone(eval(x['trajectory']), eval(x['target1']), eval(x['target2']), x['decisionSteps']), axis=1)
-    df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
+    # print(df.groupby(['participantsType'])['totalStep'].agg(['mean', 'min', 'max', 'count']))
 
-    df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
+    # df = df[(df["totalStep"] < 32)]
+
+    # df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
 
     # df = df[(df['noisePoint'] == '[]')]
 
     # df = df[(df['targetDiff'] == 0) & (df['isDecisionStepInZone'] == 1)]
 
-    df = df[(df['targetDiff'] == '0')]
     # df = df[(df['targetDiff'] == '0') | (df['targetDiff'] == 0)]
 
-    # dfExpTrail = df[(df['conditionName'] == 'expCondition1')]
-
     dfExpTrail = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
+    # dfExpTrail = df[(df['conditionName'] == 'expCondition1')]
 
     dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: hasAvoidPoints(eval(x['aimPlayerGridList']), eval(x['avoidCommitPoint'])), axis=1)
 
+    # dfExpTrail.to_csv('dfExpTrail.csv')
     statDF = pd.DataFrame()
     statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name', 'decisionSteps'])["hasAvoidPoint"].mean()
-
-    # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
+    # statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: (1 - x['avoidCommitPercent']), axis=1)
 
     statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: int((1 - x['avoidCommitPercent']) * 100), axis=1)
 
@@ -149,7 +165,8 @@ if __name__ == '__main__':
     # statDF = statDF[statDF['participantsType'] == 'RL Agent']
 
     # print(statDF)
-    # dfExpTrail.to_csv('dfExpTrail.csv')
+    # statDF.to_csv('allhumansStats.csv')
+
     sns.set_theme(style="white")
     plt.rcParams['figure.figsize'] = (8, 6)
     # plt.rcParams['figure.dpi'] = 200
@@ -217,4 +234,3 @@ if __name__ == '__main__':
     # plt.savefig('/Users/chengshaozhe/Downloads/exp2a.svg', dpi=600, format='svg')
 
     plt.show()
-

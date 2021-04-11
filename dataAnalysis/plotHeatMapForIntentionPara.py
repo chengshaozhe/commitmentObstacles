@@ -5,13 +5,17 @@ DIRNAME = os.path.dirname(__file__)
 import matplotlib.pyplot as plt
 # plt.style.use('ggplot')
 import numpy as np
+import math
 import pickle
 from scipy.stats import ttest_ind, entropy
 from scipy.interpolate import interp1d
 from sklearn.metrics import mutual_info_score as KL
-from dataAnalysis import calculateSE, calculateSD, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints, calculateFirstIntentionConsistency
+from sklearn.metrics import r2_score
 import researchpy
 import seaborn as sns
+import itertools as it
+
+from dataAnalysis import calculateSE, calculateSD, calculateAvoidCommitmnetZoneAll, calculateAvoidCommitmnetZone, calMidPoints, calculateFirstIntentionConsistency
 
 
 def hasAvoidPoints(trajectory, avoidPoint):
@@ -30,28 +34,81 @@ def calParticipantType(name):
     return participantsType
 
 
+def calRMSE(x, y):
+    return np.sqrt(np.power(np.array(x) - np.array(y), 2).mean())
+
+
+def calRMSLE(x, y):
+    return np.sqrt(np.power(np.log(np.array(x) + 1) - np.log(np.array(y) + 1), 2).mean())
+
+
+def RSquared(x, y, ymean):
+    error = np.power(np.array(x) - np.array(y), 2) / np.power(np.array(x) - np.array(ymean), 2)
+    RSqured = 1 - error
+    return RSqured
+
+
+def calCorr(a, b):
+    a_avg = sum(a) / len(a)
+    b_avg = sum(b) / len(b)
+
+    cov_ab = sum([(x - a_avg) * (y - b_avg) for x, y in zip(a, b)])
+
+    sq = math.sqrt(sum([(x - a_avg)**2 for x in a]) * sum([(x - b_avg)**2 for x in b]))
+
+    corrFactor = cov_ab / sq
+    return corrFactor
+
+
 if __name__ == '__main__':
-    resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results/intentionModelWithNaiveInfer')
+    # a = [1, 2, 3, 4]
+    # b = [20, 30, 40, 50]
+    # c = [4, 3, 2, 1]
+    # print(calCorr(a, b), calCorr(a, c), r2_score(a, b), r2_score(a, c))
+    # gg
+
+    modelName = 'intentionModelWithSophisticatedInfer'
+    # modelName = 'intentionModelWithNaiveInfer2'
+    # modelName = 'intentionModelWithSophistictedInfer2'
+
+    modelName = 'intentionModelTest'
+    # modelName = "intentionModelWithSpMonitor"
+
+    # modelName = "intentionModelChosen"
+
+    resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results/' + modelName)
     # participants = ['human', 'RL']
 
-    humansStats = [42.50, 43.95, 63.80, 83.75, 77.60]
+    humansStats = np.array([42.50, 43.95, 63.80, 83.75, 77.60]) * 0.01
+    # humansStats = np.array([50, 50, 63.80, 83.75, 77.60]) * 0.01
 
-    # humansStats = [48.80, 46.35, 68.90, 83.10, 81.45] #obstacle 1
+    humanDataPath = os.path.join(os.path.join(DIRNAME, '..'), 'dataAnalysis/allhumansStats.csv')
+    humanDf = pd.read_csv(humanDataPath)
 
-    # humansStats = [50, 50, 63.80, 83.75, 77.60]
+    humanDf['ShowCommitmentPercent'] = np.round(humanDf['ShowCommitmentPercent'], 3)
+    humanStatDf = humanDf.groupby('name').ShowCommitmentPercent.apply(list).reset_index()
 
+    # print(humanStatDf)
+    # print(humanStatDf['ShowCommitmentPercent'])
+
+    # gg
+
+    # humanStats = [ for name in humanDfStat['name']]
     dirs = os.listdir(resultsPath)[1:]
     participants = [d for d in dirs if not d[0] == '.']
-    print(participants)
+    # print(participants)
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
+    print(dfList[0])
+    gg
+
     df = pd.concat(dfList, sort=True)
 
     df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
     df['totalTime'] = df.apply(lambda x: eval(x['reactionTime'])[-1], axis=1)
-
     df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
+    df['totalSteps'] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
 
     # df = df[(df['noisePoint'] == '[]')]
     df = df[(df['targetDiff'] == '0')]
@@ -66,32 +123,52 @@ if __name__ == '__main__':
     statDF['avoidCommitPercent'] = dfExpTrail.groupby(['threshold', 'infoScale', 'decisionSteps'])["hasAvoidPoint"].mean()
     # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
 
-    statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: int((1 - x['avoidCommitPercent']) * 100), axis=1)
+    statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: np.round(1 - x['avoidCommitPercent'], 3), axis=1)
 
     statDF = statDF.reset_index()
-    # statDF['participantsType'] = ['RL' if 'noise' in name else 'Humans' for name in statDF['name']]
     pd.set_option("max_columns", 10)
     # print(statDF)
 
-    heatMapDf = pd.DataFrame()
-    heatMapDf['avoidCommitPercent'] = dfExpTrail.groupby(['threshold', 'infoScale'])["hasAvoidPoint"].mean()
-    heatMapDf['ShowCommitmentList'] = statDF.groupby(['threshold', 'infoScale'])['ShowCommitmentPercent']
-    heatMapDf = heatMapDf.reset_index()
+    heatMapDf = statDF.groupby(['threshold', 'infoScale']).ShowCommitmentPercent.apply(list).reset_index()
+    # print(heatMapDf)
 
-    def calRMSE(x, y):
-        return np.sqrt(np.power(np.array(x) - np.array(y), 2).mean())
-    print(heatMapDf)
+# by human means
+    # heatMapDf['totalSteps'] = dfExpTrail.groupby(['threshold', 'infoScale'])['totalSteps'].mean().reset_index()['totalSteps']
 
-    heatMapDf['RMSE'] = heatMapDf.apply(lambda x: calRMSE(x['ShowCommitmentList'][1], humansStats), axis=1)
-    print(heatMapDf)
+    # heatMapDf['RMSE'] = heatMapDf.apply(lambda x: calRMSE(humansStats, x['ShowCommitmentPercent']), axis=1)
+    # heatMapDf['RMSLE'] = heatMapDf.apply(lambda x: calRMSLE(humansStats, x['ShowCommitmentPercent']), axis=1)
+    heatMapDf['RSquared'] = heatMapDf.apply(lambda x: r2_score(humansStats, x['ShowCommitmentPercent']), axis=1)
+    # heatMapDf['r'] = heatMapDf.apply(lambda x: calCorr(humansStats, x['ShowCommitmentPercent']), axis=1)
 
-    heatMap = heatMapDf.pivot("threshold", "infoScale", "RMSE")
-    ax = sns.heatmap(heatMap, cmap='RdBu', annot=True, linewidths=.5)
-    plt.title("RMSE")
-    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2NaiveInfer.jpg', dpi=600)
+# by all humans
+    # heatMapDf['r'] = heatMapDf.apply(lambda x: np.mean([calCorr(human, x['ShowCommitmentPercent']) for human in humanStatDf['ShowCommitmentPercent']]), axis=1)
+    # heatMapDf['RSquared'] = heatMapDf.apply(lambda x: np.mean([r2_score(human, x['ShowCommitmentPercent']) for human in humanStatDf['ShowCommitmentPercent']]), axis=1)
+
+    # print(heatMapDf)
+
+    measureName = 'RSquared'
+    heatMap = heatMapDf.pivot("infoScale", "threshold", measureName)
+    # ax = sns.heatmap(heatMap, annot=True, square=True, fmt='.3f', linewidths=.5)
+
+    # plt.rcParams['figure.figsize'] = (8, 6)
+    # plt.rcParams['figure.dpi'] = 200
+
+    ax = sns.heatmap(heatMap, cmap="RdBu_r", annot=True, square=True, fmt='.2f', linewidths=.5).invert_yaxis()
+
+    plt.title(modelName + '_' + measureName)
+
+    plt.savefig('/Users/chengshaozhe/Downloads/heatmapExp2{}.svg'.format(modelName))
     plt.show()
 
-    # statDF['participantsType'] = statDF.apply(lambda x: calParticipantType(x['name']), axis=1)
+    heatMapDf["rank"] = heatMapDf[measureName].rank(method="min", ascending=False).astype(np.int64)
+    print(heatMapDf[heatMapDf["rank"] <= 5])
+
+    # sDF = pd.DataFrame()
+    # sDF['RSquared'] = [calCorr(human, model) for human, model in it.product(humanStatDf['ShowCommitmentPercent'], heatMapDf['ShowCommitmentPercent'])]
+    # t = researchpy.summary_cont(sDF['RSquared'])
+    # print(sDF)
+    # print(t)
+    # print(t['Mean'])
 
     # # print(statDF)
     # # dfExpTrail.to_csv('dfExpTrail.csv')

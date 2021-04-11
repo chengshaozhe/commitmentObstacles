@@ -40,33 +40,6 @@ class BasePolicy:
         return softMaxActionDict
 
 
-class GoalInfernce:
-    def __init__(self, initPrior, goalPolicy, runVI):
-        self.initPrior = initPrior
-        self.goalPolicy = goalPolicy
-        self.runVI = runVI
-
-    def __call__(self, trajectory, aimAction, target1, target2, obstacles):
-        trajectory = list(map(tuple, trajectory))
-        goalPosteriorList = []
-        priorGoal = initPrior[0]
-
-        goal = trajectory[-1]
-        targets = list([target1, target2])
-        noGoal = [target for target in targets if target != goal][0]
-
-        QDictGoal = self.runVI(goal, obstacles)
-        QDictNoGoal = self.runVI(noGoal, obstacles)
-        for playerGrid, action in zip(trajectory[:16], aimAction):
-            likelihoodGoal = self.goalPolicy(QDictGoal, playerGrid, goal, obstacles).get(action)
-            likelihoodB = self.goalPolicy(QDictNoGoal, playerGrid, noGoal, obstacles).get(action)
-            posteriorGoal = (priorGoal * likelihoodGoal) / ((priorGoal * likelihoodGoal) + (1 - priorGoal) * likelihoodB)
-            goalPosteriorList.append(posteriorGoal)
-            priorGoal = posteriorGoal
-        goalPosteriorList.insert(0, initPrior[0])
-        return goalPosteriorList
-
-
 def calInformationGain(baseProb, conditionProb):
 
     return entropy(baseProb) - entropy(conditionProb)
@@ -136,6 +109,33 @@ class CalculateActionInformation:
             cumulatedInfoList.append(cumulatedInfo)
 
         return cumulatedInfoList
+
+
+class GoalInfernce:
+    def __init__(self, initPrior, goalPolicy, runVI):
+        self.initPrior = initPrior
+        self.goalPolicy = goalPolicy
+        self.runVI = runVI
+
+    def __call__(self, trajectory, aimAction, target1, target2, obstacles):
+        trajectory = list(map(tuple, trajectory))
+        goalPosteriorList = []
+        priorGoal = initPrior[0]
+
+        goal = trajectory[-1]
+        targets = list([target1, target2])
+        noGoal = [target for target in targets if target != goal][0]
+
+        QDictGoal = self.runVI(goal, obstacles)
+        QDictNoGoal = self.runVI(noGoal, obstacles)
+        for playerGrid, action in zip(trajectory, aimAction):
+            likelihoodGoal = self.goalPolicy(QDictGoal, playerGrid, goal, obstacles).get(action)
+            likelihoodB = self.goalPolicy(QDictNoGoal, playerGrid, noGoal, obstacles).get(action)
+            posteriorGoal = (priorGoal * likelihoodGoal) / ((priorGoal * likelihoodGoal) + (1 - priorGoal) * likelihoodB)
+            goalPosteriorList.append(posteriorGoal)
+            priorGoal = posteriorGoal
+        goalPosteriorList.insert(0, initPrior[0])
+        return goalPosteriorList
 
 
 def calPosteriorByInterpolation(goalPosteriorList, xInterpolation):
@@ -222,7 +222,8 @@ if __name__ == '__main__':
     # participants = ['human', 'RL']
     # participants = ['human', 'intentionModel/threshold0.5infoScale11']
     participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
-    participants = ['intentionModelWithNaiveInfer/threshold0.3infoScale5']
+    participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
+    participants = ['human', 'intentionModel/threshold0.08infoScale8.5']
 
     # decisionStep = 2
     for decisionStep in [6]:  # , 4, 2, 1, 0]:
@@ -241,23 +242,28 @@ if __name__ == '__main__':
             df = df[(df['decisionSteps'] == decisionStep)]
 
             df["trajLength"] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
-            df = df[(df["trajLength"] > 14)]
+
+            df['isValidTraj'] = df.apply(lambda x: isValidTraj(eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+            df = df[df['isValidTraj'] == 1]
+
+            chosenSteps = 16
+            df = df[(df["trajLength"] > chosenSteps)]
 
             # df = df[(df["trajLength"] > 14) & (df["trajLength"] < 25)]
             # df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
-            # df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+            df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
-            if participant == 'human':
-                df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
-            else:
-                df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+            # if participant == 'human':
+            #     df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+            # else:
+            #     df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
 
     # interpolation
             # xnew = np.linspace(0., 1., 15)
             # df['goalPosterior'] = df.apply(lambda x: calPosteriorByInterpolation(x['goalPosteriorList'], xnew), axis=1)
 
-            xnew = np.array(list(range(15)))
+            xnew = np.array(list(range(chosenSteps + 1)))
             df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
             # df['goalPosterior'] = df.apply(lambda x: np.round(np.array(x['goalPosterior']) * 100), axis=1)
 
@@ -280,7 +286,7 @@ if __name__ == '__main__':
         sigArea = np.where(pvalus < 0.05)[0]
         print(sigArea)
 
-        lables = ['Humans', 'RL']
+        lables = ['Humans', 'Intention Model']
 
         lineWidth = 1
         # xnew = np.array(list(range(1, 16)))
@@ -311,12 +317,12 @@ if __name__ == '__main__':
         plt.legend(loc='best', fontsize=12)
         plt.xlabel("Agent's steps over time", fontsize=14, color='black')
         plt.ylabel('Posterior probability of goal-reached', fontsize=14, color='black')
-        plt.ylim((0.49, 1))
+        plt.ylim((0.47, 1))
 
         plt.xticks(fontsize=12, color='black')
         plt.yticks(fontsize=12, color='black')
         plt.rcParams['svg.fonttype'] = 'none'
-        # plt.savefig('/Users/chengshaozhe/Downloads/exp2b-thershold0.5-step{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
+        plt.savefig('/Users/chengshaozhe/Downloads/exp2bStep{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
 
         # plt.title('Inferred Goal Through Time', fontsize=fontSize, color='black')
         plt.show()

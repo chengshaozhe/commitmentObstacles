@@ -38,7 +38,8 @@ if __name__ == '__main__':
     # participants = ['human', 'softmaxBeta0.1', 'softmaxBeta0.5', 'softmaxBeta1', 'softmaxBeta2.5', 'softmaxBeta5']
 
     participants = ['human', 'RL']
-    participants = ['human', 'intentionModelWithNaiveInfer/threshold0.4infoScale5']
+    participants = ['human', 'intentionModelChosen/threshold0.08infoScale8.5']
+    participants = ['human', 'intentionModel/threshold0.08infoScale8.5']
 
     for participant in participants:
         dataPath = os.path.join(resultsPath, participant)
@@ -76,7 +77,7 @@ if __name__ == '__main__':
 
         stats = statDF.columns
         statsList.append([np.mean(statDF[stat]) for stat in stats][0])
-        stdList.append([calculateSE(statDF[stat]) for stat in stats][0])
+        stdList.append([calculateCI95(statDF[stat]) for stat in stats][0])
         statDFList.append(statDF['firstIntentionConsistFinalGoalSpecail'].tolist())
 
     # print(ttest_ind(statDFList[0], statDFList[1]))
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     # plt.title('Commitment Ratio')  # Intention Consistency
     # plt.show()
 
-    labels = ['Humans', 'RL']
+    labels = ['Humans', 'Intention Model']
     x_pos = np.arange(len(labels))
 
     # import seaborn as sns

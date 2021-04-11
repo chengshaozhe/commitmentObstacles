@@ -143,13 +143,14 @@ def runExp(condtion, renderOn=0):
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-    softmaxBeta = 2.5
+    # softmaxBeta = 2.5
 
     normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
     specialNoise = backToCrossPointNoise
 
     threshold = condtion['threshold']
     infoScale = condtion['infoScale']
+    softmaxBeta = condtion['softmaxBeta']
 
 # serial
     # thresholdList = np.array([4, 6, 8, 10, 12]) * 0.01
@@ -175,6 +176,7 @@ def runExp(condtion, renderOn=0):
         experimentValues["name"] = "intentionModel" + str(i)
         experimentValues["threshold"] = threshold
         experimentValues["infoScale"] = infoScale
+        experimentValues["softmaxBeta"] = softmaxBeta
 
         modelResultsPath = os.path.join(resultsPath, "intentionModelWithNaiveInfer")
         if not os.path.exists(modelResultsPath):
@@ -194,8 +196,10 @@ if __name__ == "__main__":
     # runExp(condition, renderOn=1)
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
-    manipulatedVariables['threshold'] = list(np.round(np.arange(0.05, 0.8, 0.05), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-    manipulatedVariables['infoScale'] = list(np.arange(1, 16, 1))  # [5, 6, 7, 8, 9, 10]
+    manipulatedVariables['threshold'] = list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    manipulatedVariables['infoScale'] = list(np.arange(5, 10, 1))
+    manipulatedVariables['softmaxBeta'] = list(np.arange(1, 11, 1))
+
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
     parametersAllCondtion = [dict(list(specificValueParameter)) for specificValueParameter in productedValues]
 

@@ -80,7 +80,7 @@ if __name__ == '__main__':
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
     participants = ['human', 'RL']
     participants = ['human0331']
-    # participants = ['intentionModel2/threshold0.08infoScale9']
+    participants = ['intentionModelWithSophistictedInfer2/threshold0.08infoScale9']
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     # df = df[(df['targetDiff'] == 0) & (df['isDecisionStepInZone'] == 1)]
 
     df = df[(df['targetDiff'] == '0')]
-    df = df[df['decisionSteps'] == 6]
+    df = df[df['decisionSteps'] == 2]
 
 # first half
     # df = df[df.index < 144]

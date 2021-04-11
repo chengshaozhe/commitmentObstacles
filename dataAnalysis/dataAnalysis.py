@@ -9,6 +9,15 @@ def stableSoftmax(x):
     return sm_x
 
 
+def isValidTraj(trajectory, target1, target2):
+    trajectory = list(map(tuple, trajectory))
+    finalState = trajectory[-1]
+    if finalState == target1 or finalState == target2:
+        return True
+    else:
+        return False
+
+
 def calculateSoftmaxProbability(acionValues, beta):
     exponents = np.multiply(beta, acionValues)
     exponents = np.array([min(700, exponent) for exponent in exponents])
@@ -22,8 +31,14 @@ def calculateSD(data):
 
 
 def calculateSE(data):
-    standardError = np.std(data, ddof=1) / np.sqrt(len(data) - 1)
+    standardError = np.std(data, ddof=1) / np.sqrt(len(data))
     return standardError
+
+
+def calculateCI95(data, t_ci=2.086):
+    standardError = np.std(data, ddof=1) / np.sqrt(len(data))
+    ci95 = standardError * t_ci
+    return ci95
 
 
 def calculateGridDis(grid1, grid2):
