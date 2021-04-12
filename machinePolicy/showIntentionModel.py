@@ -490,8 +490,8 @@ class GetShowIntentionPolices:
         goalPoliciesDict = {'a': policyA, 'b': policyB}
         intentionQDicts = []
 
-        runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetA, obstacles=obstacles)
-        runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=targetB, obstacles=obstacles)
+        runValueIterationA = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=[targetA], obstacles=obstacles)
+        runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=[targetB], obstacles=obstacles)
 
         getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, self.intentionInfoScale)
         getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, self.intentionInfoScale)
@@ -511,7 +511,7 @@ class GetShowIntentionPolices:
             y = y.reshape((gridSize, gridSize))
             df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
             sns.heatmap(df, annot=True, fmt='.3f')
-            # plt.title('{} for goal at {} noise={} goalReward={}'.format(mapValue, goalStates, self.noise, self.goalReward))
+            # plt.title('{} for goal at {} goalReward={}'.format(mapValue, goalStates, self.goalReward))
             plt.show()
 
         for V, R, T, goal in zip([V_A, V_B], [infoRewardA, infoRewardB], [transitionTableA, transitionTableB], [targetA, targetB]):
@@ -539,10 +539,10 @@ if __name__ == '__main__':
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
     softmaxBeta = 2.5
-    intentionInfoScale = [0.2]
+    intentionInfoScale = 9
     runModel = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
 
-    goalStates = ((4, 9), (9, 4))
+    goalStates = ((5, 9), (9, 5))
     obstaclesMap1 = [[(2, 2), (2, 4), (2, 5), (4, 2), (5, 2), (0, 3), (0, 4), (0, 5), (3, 0), (4, 0), (5, 0)]]
     import random
     obstacles = random.choice(obstaclesMap1)
