@@ -1,4 +1,3 @@
-# for linux ssh: set matplotlib to not use the Xwindows backend.
 import matplotlib
 # matplotlib.use('Agg')
 
@@ -188,15 +187,14 @@ def draw_policy_4d_softmax(ax=None, PI={}, V=None, S=(), A=()):
     draw_V(ax, V, S)
     for s in S:
         for a in A:
-            draw_state_quiver_softmax(ax, s, PI[s], scale=1, color='w')
+            draw_state_quiver_softmax(ax, s, PI[s], scale=1.5, color='w')
 
 
 def draw_state_quiver_softmax(ax, state=(), actions={}, scale=1.5, color='k', **kwargs):
     X, Y, U, V = zip(*((state[1], state[0], a[1] * v, a[0] * v)
                        for (a, v) in actions.items()))
 
-    ax.quiver(X, Y, U, V, angles='xy', scale_units='xy', scale=scale,
-              color=color, **kwargs)
+    ax.quiver(X, Y, U, V, angles='xy', scale_units='xy', units='inches', scale=2, color=color, **kwargs)
 
     return ax
 

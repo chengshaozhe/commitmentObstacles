@@ -143,14 +143,11 @@ class OnlineIntentionModelSimulation():
         for trialIndex, [condition, targetDiff] in enumerate(expDesignValues):
             playerGrid, target1, target2, obstacles, avoidCommitPoint, crossPoint = self.creatMap(condition, targetDiff)
 
-            targets = tuple([target1, target2])
-            # goalPolicies = [self.runVI(goal, obstacles)[-2] for goal in targets]
-
-            RLPolicy, goalQDict, intentionPolicies = self.getPolices(target1, target2, obstacles)
+            RLQDict, goalQDict, intentionQDict = self.getPolices(target1, target2, obstacles)
             if isinstance(noiseDesignValues[trialIndex], int):
-                results = self.normalTrial(RLPolicy, goalQDict, intentionPolicies, target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex], condition.decisionSteps)
+                results = self.normalTrial(RLQDict, goalQDict, intentionQDict, target1, target2, playerGrid, obstacles, noiseDesignValues[trialIndex], condition.decisionSteps)
             else:
-                results = self.specialTrial(RLPolicy, goalQDict, intentionPolicies, target1, target2, playerGrid, obstacles)
+                results = self.specialTrial(RLQDict, goalQDict, intentionQDict, target1, target2, playerGrid, obstacles)
 
             results["conditionName"] = condition.name
             results["decisionSteps"] = str(condition.decisionSteps)

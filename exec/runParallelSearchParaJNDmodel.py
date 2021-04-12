@@ -87,7 +87,7 @@ def runExp(condtion, renderOn=0):
 
     map1ObsStep6 = condition(name='expCondition1', decisionSteps=6, initAgent=(0, 0), avoidCommitPoint=(4, 4), crossPoint=(5, 5), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)])
 
-    map2ObsStep6 = condition(name='expCondition2', decisionSteps=6, initAgent=(0, 0), avoidCommitPoint=(4, 4), crossPoint=(6, 6), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4), (3, 6), (6, 3), ])
+    map2ObsStep6 = condition(name='expCondition2', decisionSteps=6, initAgent=(0, 0), avoidCommitPoint=(4, 4), crossPoint=(6, 6), targetDisToCrossPoint=[4, 5, 6], fixedObstacles=[(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4), (3, 6), (6, 3)])
 
     specialCondition = condition(name='specialCondition', decisionSteps=0, initAgent=(0, 0), avoidCommitPoint=[-1, -1], crossPoint=(5, 5), targetDisToCrossPoint=[5], fixedObstacles=[(3, 0), (0, 3), (1, 4), (1, 6), (4, 1), (6, 1), (6, 2), (2, 6), (5, 3), (3, 5)])
 
@@ -139,7 +139,7 @@ def runExp(condtion, renderOn=0):
 
     noise = 0.067
     gamma = 0.9
-    goalReward = [30, 30]
+    goalReward = 30
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
@@ -194,12 +194,13 @@ def runExp(condtion, renderOn=0):
 
 
 if __name__ == "__main__":
-    # runExp(condition, renderOn=1)
+    # runExp({}, renderOn=1)
+
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
-    manipulatedVariables['threshold'] = list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-    manipulatedVariables['infoScale'] = list(np.arange(5, 10, 1))
-    manipulatedVariables['softmaxBetaInfer'] = list(np.arange(1, 11, 1))
+    manipulatedVariables['threshold'] = [0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5]  # list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    manipulatedVariables['infoScale'] = list(np.arange(1, 10, 1))
+    manipulatedVariables['softmaxBetaInfer'] = list(np.arange(1, 10, 1))
     manipulatedVariables['softmaxBetaAct'] = [2.5]
 
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
