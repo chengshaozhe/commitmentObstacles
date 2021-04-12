@@ -150,7 +150,8 @@ def runExp(condtion, renderOn=0):
 
     threshold = condtion['threshold']
     infoScale = condtion['infoScale']
-    softmaxBeta = condtion['softmaxBeta']
+    softmaxBetaInfer = condtion['softmaxBetaInfer']
+    softmaxBetaAct = condtion['softmaxBetaAct']
 
 # serial
     # thresholdList = np.array([4, 6, 8, 10, 12]) * 0.01
@@ -165,9 +166,9 @@ def runExp(condtion, renderOn=0):
         random.shuffle(expDesignValues)
         expDesignValues.append(specialDesign)
 
-        inferGoalPosterior = InferGoalPosterior(softmaxBeta)
-        getPolices = GetShowIntentionPolices(runVI, softmaxBeta, infoScale)
-        controller = ActWithMonitorIntentionThreshold(softmaxBeta, threshold)
+        inferGoalPosterior = InferGoalPosterior(softmaxBetaInfer)
+        getPolices = GetShowIntentionPolices(runVI, softmaxBetaAct, infoScale)
+        controller = ActWithMonitorIntentionThreshold(softmaxBetaAct, threshold)
 
         normalTrial = NormalTrialWithOnlineIntention(renderOn, controller, normalNoise, checkBoundary, inferGoalPosterior, drawNewState)
         specialTrial = SpecialTrialWithOnlineIntention(renderOn, controller, specialNoise, checkBoundary, inferGoalPosterior, drawNewState)
@@ -176,13 +177,13 @@ def runExp(condtion, renderOn=0):
         experimentValues["name"] = "intentionModel" + str(i)
         experimentValues["threshold"] = threshold
         experimentValues["infoScale"] = infoScale
-        experimentValues["softmaxBeta"] = softmaxBeta
+        experimentValues["softmaxBetaInfer"] = softmaxBetaInfer
 
-        modelResultsPath = os.path.join(resultsPath, "intentionModelWithNaiveInfer")
+        modelResultsPath = os.path.join(resultsPath, "intentionModelWithNaiveInferVaryBeta")
         if not os.path.exists(modelResultsPath):
             os.mkdir(modelResultsPath)
 
-        resultsDirPath = os.path.join(modelResultsPath, "threshold" + str(threshold) + 'infoScale' + str(infoScale) + "softmaxBeta" + str(softmaxBeta))
+        resultsDirPath = os.path.join(modelResultsPath, "threshold" + str(threshold) + 'infoScale' + str(infoScale) + "softmaxBetaInfer" + str(softmaxBetaInfer))
         if not os.path.exists(resultsDirPath):
             os.mkdir(resultsDirPath)
 
@@ -198,7 +199,8 @@ if __name__ == "__main__":
     manipulatedVariables = co.OrderedDict()
     manipulatedVariables['threshold'] = list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
     manipulatedVariables['infoScale'] = list(np.arange(5, 10, 1))
-    manipulatedVariables['softmaxBeta'] = list(np.arange(1, 11, 1))
+    manipulatedVariables['softmaxBetaInfer'] = list(np.arange(1, 11, 1))
+    manipulatedVariables['softmaxBetaAct'] = [2.5]
 
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])
     parametersAllCondtion = [dict(list(specificValueParameter)) for specificValueParameter in productedValues]

@@ -67,7 +67,6 @@ if __name__ == '__main__':
     # print(calCorr(a, b), calCorr(a, c), r2_score(a, b), r2_score(a, c))
     # gg
 
-    modelName = 'intentionModelWithSophisticatedInfer'
     # modelName = 'intentionModelWithNaiveInfer2'
     # modelName = 'intentionModelWithSophistictedInfer2'
 
@@ -75,6 +74,7 @@ if __name__ == '__main__':
     # modelName = "intentionModelWithSpMonitor"
 
     # modelName = "intentionModelChosen"
+    # modelName = 'intentionModelNaiveInferSearchBeta'
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results/' + modelName)
     # participants = ['human', 'RL']
@@ -96,12 +96,10 @@ if __name__ == '__main__':
     # humanStats = [ for name in humanDfStat['name']]
     dirs = os.listdir(resultsPath)[1:]
     participants = [d for d in dirs if not d[0] == '.']
-    # print(participants)
+    print(participants)
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
-    print(dfList[0])
-    gg
 
     df = pd.concat(dfList, sort=True)
 
@@ -120,7 +118,7 @@ if __name__ == '__main__':
     dfExpTrail['hasAvoidPoint'] = dfExpTrail.apply(lambda x: hasAvoidPoints(eval(x['aimPlayerGridList']), eval(x['avoidCommitPoint'])), axis=1)
 
     statDF = pd.DataFrame()
-    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['threshold', 'infoScale', 'decisionSteps'])["hasAvoidPoint"].mean()
+    statDF['avoidCommitPercent'] = dfExpTrail.groupby(['threshold', 'infoScale', "softmaxBeta", 'decisionSteps'])["hasAvoidPoint"].mean()
     # statDF['avoidCommitPercent'] = dfExpTrail.groupby(['name'])["hasAvoidPoint"].mean()
 
     statDF['ShowCommitmentPercent'] = statDF.apply(lambda x: np.round(1 - x['avoidCommitPercent'], 3), axis=1)
@@ -129,10 +127,13 @@ if __name__ == '__main__':
     pd.set_option("max_columns", 10)
     # print(statDF)
 
-    heatMapDf = statDF.groupby(['threshold', 'infoScale']).ShowCommitmentPercent.apply(list).reset_index()
+    # heatMapDf = statDF.groupby(['threshold', 'infoScale']).ShowCommitmentPercent.apply(list).reset_index()
+    heatMapDf = statDF.groupby(['threshold', "softmaxBeta"]).ShowCommitmentPercent.apply(list).reset_index()
     # print(heatMapDf)
 
 # by human means
+    heatMapDf['totalSteps'] = dfExpTrail.groupby(['threshold', 'softmaxBeta'])['totalSteps'].mean().reset_index()['totalSteps']
+
     # heatMapDf['totalSteps'] = dfExpTrail.groupby(['threshold', 'infoScale'])['totalSteps'].mean().reset_index()['totalSteps']
 
     # heatMapDf['RMSE'] = heatMapDf.apply(lambda x: calRMSE(humansStats, x['ShowCommitmentPercent']), axis=1)
@@ -147,7 +148,8 @@ if __name__ == '__main__':
     # print(heatMapDf)
 
     measureName = 'RSquared'
-    heatMap = heatMapDf.pivot("infoScale", "threshold", measureName)
+    # heatMap = heatMapDf.pivot("infoScale", "threshold", measureName)
+    heatMap = heatMapDf.pivot("softmaxBeta", "threshold", measureName)
     # ax = sns.heatmap(heatMap, annot=True, square=True, fmt='.3f', linewidths=.5)
 
     # plt.rcParams['figure.figsize'] = (8, 6)
