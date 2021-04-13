@@ -374,21 +374,31 @@ class CalPerceivedIntentions:
         return perceivedIntentions
 
 
+def getSoftmaxGoalPolicy(Q_dict, playerGrid, target, softmaxBeta):
+    actionDict = Q_dict[(playerGrid, target)]
+    actions = list(actionDict.keys())
+    actionValues = list(actionDict.values())
+    softmaxProbabilityList = calculateSoftmaxProbability(actionValues, softmaxBeta)
+    softMaxActionDict = {action: prob for action, prob in zip(actions, softmaxProbabilityList)}
+    return softMaxActionDict
+
+
 class InferGoalPosterior:
     def __init__(self, softmaxBeta):
         self.softmaxBeta = softmaxBeta
 
-    def __call__(self, playerGrid, action, target1, target2, priorList, goalPolicies):
-        targets = list([target1, target2])
+    def __call__(self, playerGrid, action, target1, target2, priorList, goalQDicts):
+        targets = [target1, target2]
 
-        actionValueList = [goalPolicies[goalIndex][playerGrid, goal].get(action) for goalIndex, goal in enumerate(targets)]
-        likelihoodList = calculateSoftmaxProbability(actionValueList, self.softmaxBeta)
+        goalPolicies = [getSoftmaxGoalPolicy(Q_dict, playerGrid, goal, self.softmaxBeta) for Q_dict, goal in zip(goalQDicts, targets)]
+
+        likelihoodList = [goalPolicies[goalIndex].get(action) for goalIndex, goal in enumerate(targets)]
+# round
+        likelihoodList = [round(likelihood, 3) for likelihood in likelihoodList]
 
         posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
         evidence = sum(posteriorUnnormalized)
-        posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
-
-        posteriors = [round(posterior, 3) for posterior in posteriorList]
+        posteriors = [posterior / evidence for posterior in posteriorUnnormalized]
         return posteriors
 
 
@@ -461,25 +471,6 @@ class ActWithMonitorIntentionThreshold:
             action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
         aimPlayerGrid = tuple(np.add(playerGrid, action))
         return aimPlayerGrid, action
-
-
-class InferGoalPosteriorOnline:
-    def __init__(self, runVI, softmaxBeta):
-        self.runVI = runVI
-        self.softmaxBeta = softmaxBeta
-
-    def __call__(self, playerGrid, action, target1, target2, priorList):
-        targets = list([target1, target2])
-        goalPolicy = [self.runVI(goal, obstacles) for goal in targets]
-
-        actionValueList = [goalPolicy[playerGrid, goal].get(action) for goal in targets]
-        likelihoodList = calculateSoftmaxProbability(actionValueList, self.softmaxBeta)
-
-        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
-        evidence = sum(posteriorUnnormalized)
-        posteriorList = [posterior / evidence for posterior in posteriorUnnormalized]
-
-        return posteriorList
 
 
 class ModelControllerWithGoal:

@@ -100,7 +100,6 @@ if __name__ == '__main__':
 
     dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
     dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
-
     df = pd.concat(dfList, sort=True)
 
     df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
@@ -128,11 +127,13 @@ if __name__ == '__main__':
     # print(statDF)
 
     # heatMapDf = statDF.groupby(['threshold', 'infoScale']).ShowCommitmentPercent.apply(list).reset_index()
-    heatMapDf = statDF.groupby(['threshold', "softmaxBeta"]).ShowCommitmentPercent.apply(list).reset_index()
-    # print(heatMapDf)
+    # heatMapDf = statDF.groupby(['threshold', "softmaxBeta"]).ShowCommitmentPercent.apply(list).reset_index()
+    heatMapDf = statDF.groupby(['infoScale', "softmaxBeta"]).ShowCommitmentPercent.apply(list).reset_index()
+
+    print(heatMapDf)
 
 # by human means
-    heatMapDf['totalSteps'] = dfExpTrail.groupby(['threshold', 'softmaxBeta'])['totalSteps'].mean().reset_index()['totalSteps']
+    heatMapDf['totalSteps'] = dfExpTrail.groupby(['infoScale', 'softmaxBeta'])['totalSteps'].mean().reset_index()['totalSteps']
 
     # heatMapDf['totalSteps'] = dfExpTrail.groupby(['threshold', 'infoScale'])['totalSteps'].mean().reset_index()['totalSteps']
 
@@ -147,9 +148,9 @@ if __name__ == '__main__':
 
     # print(heatMapDf)
 
-    measureName = 'RSquared'
+    measureName = 'totalSteps'
     # heatMap = heatMapDf.pivot("infoScale", "threshold", measureName)
-    heatMap = heatMapDf.pivot("softmaxBeta", "threshold", measureName)
+    heatMap = heatMapDf.pivot("softmaxBeta", "infoScale", measureName)
     # ax = sns.heatmap(heatMap, annot=True, square=True, fmt='.3f', linewidths=.5)
 
     # plt.rcParams['figure.figsize'] = (8, 6)

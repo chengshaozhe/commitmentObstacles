@@ -148,10 +148,15 @@ def runExp(condtion, renderOn=0):
     normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
     specialNoise = backToCrossPointNoise
 
-    threshold = condtion['threshold']
-    infoScale = condtion['infoScale']
-    softmaxBetaInfer = condtion['softmaxBetaInfer']
-    softmaxBetaAct = condtion['softmaxBetaAct']
+    # threshold = condtion['threshold']
+    # infoScale = condtion['infoScale']
+    # softmaxBetaInfer = condtion['softmaxBetaInfer']
+    # softmaxBetaAct = condtion['softmaxBetaAct']
+
+    threshold = 0
+    infoScale = 2
+    softmaxBetaInfer = 2.5
+    softmaxBetaAct = 2.5
 
 # serial
     # thresholdList = np.array([4, 6, 8, 10, 12]) * 0.01
@@ -194,7 +199,7 @@ def runExp(condtion, renderOn=0):
 
 
 if __name__ == "__main__":
-    # runExp({}, renderOn=1)
+    runExp({}, renderOn=0)
 
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()

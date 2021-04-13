@@ -309,7 +309,7 @@ class RunVI:
         V_arr = V_dict_to_array(V, S)
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
 
-        Q_dictDefault = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+        Q_dict = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 ###
 
         visualMap = 0
@@ -322,18 +322,17 @@ class RunVI:
             # df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
             # sns.heatmap(df, annot=True, fmt='.3f')
 
-            getPolicy = SoftmaxRLPolicy(Q_dictDefault, softmaxBeta=2.5)
+            getPolicy = SoftmaxRLPolicy(Q_dict, softmaxBeta=2.5)
             policy = {state: getPolicy(state) for state in S}
 
             fig, ax = plt.subplots(1, 1, tight_layout=True)
-            # fig.set_size_inches(env.nx * 3, env.ny * 3, forward=True)
             draw_policy_4d_softmax(ax, policy, V=V, S=S, A=A)
             plt.show()
 
         goalStatesTuple = tuple(goalStates) if len(goalStates) > 1 else goalStates[0]
-        Q_dict = {(s, goalStatesTuple): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
+        Q_dictGoal = {(s, goalStatesTuple): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 
-        return S, A, T, R, gamma, V, Q_dict, Q_dictDefault
+        return S, A, T, R, gamma, V, Q_dictGoal, Q_dict
 
 
 class GetShowIntentionPolices:
@@ -343,9 +342,9 @@ class GetShowIntentionPolices:
         self.runVI = runVI
 
     def __call__(self, targetA, targetB, obstacles):
-        S, A, transitionRL, rewardRL, _, V_RL, _, RLDict = self.runVI([targetA, targetB], obstacles)
-        _, _, transitionTableA, rewardA, gamma, V_goalA, Q_dictA, _ = self.runVI(targetA, obstacles)
-        _, _, transitionTableB, rewardB, gamma, V_goalB, Q_dictB, _ = self.runVI(targetB, obstacles)
+        S, A, transitionRL, rewardRL, gamma, V_RL, _, RLDict = self.runVI([targetA, targetB], obstacles)
+        _, _, transitionTableA, rewardA, _, V_goalA, Q_dictA, _ = self.runVI(targetA, obstacles)
+        _, _, transitionTableB, rewardB, _, V_goalB, Q_dictB, _ = self.runVI(targetB, obstacles)
         goalQDict = [Q_dictA, Q_dictB]
 
         getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
@@ -358,32 +357,34 @@ class GetShowIntentionPolices:
         runValueIterationB = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=[targetB], obstacles=obstacles)
 
 # 1
-        # getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, self.intentionInfoScale)
-        # getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, self.intentionInfoScale)
+        getLikelihoodRewardFunctionA = GetLikelihoodRewardFunction(transitionTableA, goalPoliciesDict, self.intentionInfoScale)
+        getLikelihoodRewardFunctionB = GetLikelihoodRewardFunction(transitionTableB, goalPoliciesDict, self.intentionInfoScale)
 
-        # infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
-        # infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
+        infoRewardA = getLikelihoodRewardFunctionA('a', rewardA)
+        infoRewardB = getLikelihoodRewardFunctionB('b', rewardB)
 
-        # V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
-        # V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+        V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
+        V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
 
 # 2
-        getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
+        # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
 
-        infoRewardA = getLikelihoodRewardFunction('a', rewardA)
-        infoRewardB = getLikelihoodRewardFunction('b', rewardB)
+        # infoRewardA = getLikelihoodRewardFunction('a', rewardA)
+        # infoRewardB = getLikelihoodRewardFunction('b', rewardB)
 
-        V_A = runValueIterationA(S, A, transitionRL, infoRewardA)
-        V_B = runValueIterationB(S, A, transitionRL, infoRewardB)
+        # V_A = runValueIterationA(S, A, transitionRL, infoRewardA)
+        # V_B = runValueIterationB(S, A, transitionRL, infoRewardB)
 
 # 3
+        # runValueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=[targetA, targetB], obstacles=obstacles)
+
         # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
 
         # infoRewardA = getLikelihoodRewardFunction('a', rewardRL)
         # infoRewardB = getLikelihoodRewardFunction('b', rewardRL)
 
-        # V_A = runValueIterationA(S, A, transitionRL, infoRewardA)
-        # V_B = runValueIterationB(S, A, transitionRL, infoRewardB)
+        # V_A = runValueIteration(S, A, transitionRL, infoRewardA)
+        # V_B = runValueIteration(S, A, transitionRL, infoRewardB)
 
         visualValueMap = 0
         if visualValueMap:
@@ -434,12 +435,14 @@ if __name__ == '__main__':
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
     softmaxBeta = 2.5
-    intentionInfoScale = 2
+    intentionInfoScale = 1
     runModel = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
 
-    goalStates = [(5, 9), (9, 5)]
+    condition = 1
+
+    goalStates = [(3, 9), (9, 3)]
     obstaclesMap2 = [(1, 1), (1, 3), (3, 1)]
     obstaclesMap6 = [(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)]
-    obstacles = obstaclesMap6
+    obstacles = obstaclesMap2
     target1, target2 = goalStates
     policies = runModel(target1, target2, obstacles)
