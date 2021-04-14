@@ -379,23 +379,23 @@ class NormalTrialWithOnlineIntention():
             posteriorData.append(posteriorList)
 
             priorList = posteriorList
-
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
-            goalList.append(goal)
-            stepCount = stepCount + 1
+
             noisePlayerGrid, realAction = self.normalNoise(realPlayerGrid, aimAction, noiseStep, stepCount)
-            if noisePlayerGrid in obstacles:
-                noisePlayerGrid = tuple(trajectory[-1])
             realPlayerGrid = self.checkBoundary(noisePlayerGrid)
-            reactionTime.append(time.get_ticks() - initialTime)
+            if realPlayerGrid in obstacles:
+                realPlayerGrid = tuple(trajectory[-1])
+
+            stepCount = stepCount + 1
+            goalList.append(goal)
             trajectory.append(tuple(realPlayerGrid))
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
+
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
             if len(trajectory) > 30:
                 break
 
-        results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
         results["aimPlayerGridList"] = str(aimPlayerGridList)
@@ -444,9 +444,7 @@ class SpecialTrialWithOnlineIntention():
             posteriorData.append(posteriorList)
 
             priorList = posteriorList
-            stepCount = stepCount + 1
             goal = inferGoal(realPlayerGrid, aimPlayerGrid, bean1Grid, bean2Grid)
-            goalList.append(goal)
 
             if len(trajectory) > 2:
                 noisePlayerGrid, noiseStep, firstIntentionFlag = self.specialNoise(trajectory, bean1Grid, bean2Grid, noiseStep, firstIntentionFlag)
@@ -459,15 +457,16 @@ class SpecialTrialWithOnlineIntention():
             if realPlayerGrid in obstacles:
                 realPlayerGrid = tuple(trajectory[-1])
 
-            reactionTime.append(time.get_ticks() - initialTime)
+            stepCount = stepCount + 1
+            goalList.append(goal)
             trajectory.append(tuple(realPlayerGrid))
             aimActionList.append(aimAction)
             aimPlayerGridList.append(aimPlayerGrid)
+
             pause = checkTerminationOfTrial(bean1Grid, bean2Grid, realPlayerGrid)
             if len(trajectory) > 30:
                 break
 
-        results["reactionTime"] = str(reactionTime)
         results["trajectory"] = str(trajectory)
         results["aimAction"] = str(aimActionList)
         results["aimPlayerGridList"] = str(aimPlayerGridList)

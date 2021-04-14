@@ -410,7 +410,7 @@ class GetShowIntentionPolices:
             Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
             intentionQDicts.append(Q_dict)
 
-        visualPolicyMap = 1
+        visualPolicyMap = 0
         if visualPolicyMap:
             Q_dictIntentionA = intentionQDicts[0]
             getPolicy = SoftmaxGoalPolicy(Q_dictIntentionA, self.softmaxBeta)
