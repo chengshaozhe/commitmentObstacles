@@ -374,7 +374,8 @@ class NormalTrialWithOnlineIntention():
                 pg.time.wait(100)
 
             aimPlayerGrid, aimAction = self.controller(RLQDict, intentionQDict, realPlayerGrid, bean1Grid, bean2Grid, priorList)
-            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
+
+            posteriorList = self.inferGoalPosterior(realPlayerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
             posteriorData.append(posteriorList)
 
             priorList = posteriorList
@@ -439,7 +440,7 @@ class SpecialTrialWithOnlineIntention():
                 pg.time.wait(100)
 
             aimPlayerGrid, aimAction = self.controller(RLQDict, intentionQDict, realPlayerGrid, bean1Grid, bean2Grid, priorList)
-            posteriorList = self.inferGoalPosterior(playerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
+            posteriorList = self.inferGoalPosterior(realPlayerGrid, aimAction, bean1Grid, bean2Grid, priorList, goalQDict)
             posteriorData.append(posteriorList)
 
             priorList = posteriorList

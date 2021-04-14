@@ -113,7 +113,7 @@ def runExp(condtion, renderOn=0):
     conditionList = [map1ObsStep0a, map1ObsStep0b, map1ObsStep1a, map1ObsStep1b] + [map1ObsStep2, map1ObsStep4, map1ObsStep6] * 2 + [map2ObsStep0a, map2ObsStep0b, map2ObsStep1a, map2ObsStep1b] + [map2ObsStep2, map2ObsStep4, map2ObsStep6] * 2
     targetDiffsList = [0]
 
-    # conditionList = [map1ObsStep0a] + [randomMaps] * 2
+    # conditionList = [map1ObsStep4]  # + [randomMaps] * 2
 
     n = 1
     numBlocks = 3 * n
@@ -143,20 +143,19 @@ def runExp(condtion, renderOn=0):
     actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-    # softmaxBeta = 2.5
 
     normalNoise = AimActionWithNoise(noiseActionSpace, gridSize)
     specialNoise = backToCrossPointNoise
 
-    # threshold = condtion['threshold']
-    # infoScale = condtion['infoScale']
-    # softmaxBetaInfer = condtion['softmaxBetaInfer']
-    # softmaxBetaAct = condtion['softmaxBetaAct']
+    threshold = condtion['threshold']
+    infoScale = condtion['infoScale']
+    softmaxBetaInfer = condtion['softmaxBetaInfer']
+    softmaxBetaAct = condtion['softmaxBetaAct']
 
-    threshold = 0
-    infoScale = 2
-    softmaxBetaInfer = 2.5
-    softmaxBetaAct = 2.5
+    # threshold = 0
+    # infoScale = 2
+    # softmaxBetaInfer = 2.5
+    # softmaxBetaAct = 2.5
 
 # serial
     # thresholdList = np.array([4, 6, 8, 10, 12]) * 0.01
@@ -184,7 +183,7 @@ def runExp(condtion, renderOn=0):
         experimentValues["infoScale"] = infoScale
         experimentValues["softmaxBetaInfer"] = softmaxBetaInfer
 
-        modelResultsPath = os.path.join(resultsPath, "intentionModelWithNaiveInferVaryBeta")
+        modelResultsPath = os.path.join(resultsPath, "intentionModelWithNaiveInfer")
         if not os.path.exists(modelResultsPath):
             os.mkdir(modelResultsPath)
 
@@ -204,8 +203,8 @@ if __name__ == "__main__":
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
     manipulatedVariables['threshold'] = [0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5]  # list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-    manipulatedVariables['infoScale'] = list(np.arange(1, 10, 1))
-    manipulatedVariables['softmaxBetaInfer'] = list(np.arange(1, 10, 1))
+    manipulatedVariables['infoScale'] = [0.01]  # list(np.arange(1, 10, 1))
+    manipulatedVariables['softmaxBetaInfer'] = [1, 2.5, 5, 10, 15]
     manipulatedVariables['softmaxBetaAct'] = [2.5]
 
     productedValues = it.product(*[[(key, value) for value in values] for key, values in manipulatedVariables.items()])

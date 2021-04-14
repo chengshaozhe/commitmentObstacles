@@ -223,7 +223,7 @@ if __name__ == '__main__':
     # participants = ['human', 'intentionModel/threshold0.5infoScale11']
     participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
     participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
-    participants = ['human', 'intentionModel/threshold0.08infoScale8.5']
+    participants = ['human', 'intentionModel/threshold0.07infoScale8.5']
 
     # decisionStep = 2
     for decisionStep in [6]:  # , 4, 2, 1, 0]:

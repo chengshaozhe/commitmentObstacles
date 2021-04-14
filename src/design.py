@@ -276,7 +276,7 @@ class CreatMap():
                 addObstacles = random.sample(possibleObsGrids, self.numOfObstacles - len(fixedObstacles))
                 obstacles = fixedObstacles + addObstacles
             else:
-                # need fix: avoid middle area control maps
+                # avoid middle area control maps
                 playerGrid = crossPoint = avoidCommitPoint = condition.initAgent
                 targetDisToCrossPoint = [10, 11, 12]
                 targetDiff = random.choice([0, 1, 2])

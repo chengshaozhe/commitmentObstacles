@@ -376,30 +376,10 @@ class CalPerceivedIntentions:
 
 def getSoftmaxGoalPolicy(Q_dict, playerGrid, target, softmaxBeta):
     actionDict = Q_dict[(playerGrid, target)]
-    actions = list(actionDict.keys())
     actionValues = list(actionDict.values())
     softmaxProbabilityList = calculateSoftmaxProbability(actionValues, softmaxBeta)
-    softMaxActionDict = {action: prob for action, prob in zip(actions, softmaxProbabilityList)}
+    softMaxActionDict = dict(zip(actionDict.keys(), softmaxProbabilityList))
     return softMaxActionDict
-
-
-class InferGoalPosterior:
-    def __init__(self, softmaxBeta):
-        self.softmaxBeta = softmaxBeta
-
-    def __call__(self, playerGrid, action, target1, target2, priorList, goalQDicts):
-        targets = [target1, target2]
-
-        goalPolicies = [getSoftmaxGoalPolicy(Q_dict, playerGrid, goal, self.softmaxBeta) for Q_dict, goal in zip(goalQDicts, targets)]
-
-        likelihoodList = [goalPolicies[goalIndex].get(action) for goalIndex, goal in enumerate(targets)]
-# round
-        likelihoodList = [round(likelihood, 3) for likelihood in likelihoodList]
-
-        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
-        evidence = sum(posteriorUnnormalized)
-        posteriors = [posterior / evidence for posterior in posteriorUnnormalized]
-        return posteriors
 
 
 class ActWithMonitorIntention:
@@ -439,29 +419,6 @@ class ActWithPerceviedIntention:
             # perceivedIntentions = self.calPerceivedIntentions(priorList)
             perceivedIntentions = priorList
             targetIndex = list(np.random.multinomial(1, perceivedIntentions)).index(1)
-            goal = targets[targetIndex]
-            actionDict = intentionPolicies[targetIndex][playerGrid, goal]
-
-        if self.softmaxBeta < 0:
-            action = chooseMaxAcion(actionDict)
-        else:
-            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
-        aimPlayerGrid = tuple(np.add(playerGrid, action))
-        return aimPlayerGrid, action
-
-
-class ActWithMonitorIntentionThreshold:
-    def __init__(self, softmaxBeta, intentionThreshold):
-        self.softmaxBeta = softmaxBeta
-        self.intentionThreshold = intentionThreshold
-
-    def __call__(self, RLPolicy, intentionPolicies, playerGrid, target1, target2, priorList):
-        targets = list([target1, target2])
-
-        if abs(priorList[0] - priorList[1]) < self.intentionThreshold:
-            actionDict = RLPolicy[playerGrid]
-        else:
-            targetIndex = list(np.random.multinomial(1, priorList)).index(1)
             goal = targets[targetIndex]
             actionDict = intentionPolicies[targetIndex][playerGrid, goal]
 
@@ -547,3 +504,83 @@ class AvoidCommitModel:
         action = self.actionSpace[np.argmax(actionInformationList)]
         aimePlayerGrid = self.checkBoundary((tuple(np.add(playerGrid, action))))
         return aimePlayerGrid, action
+
+
+class InferGoalPosterior:
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, action, target1, target2, priorList, goalQDicts):
+        targets = [target1, target2]
+
+        goalPolicies = [getSoftmaxGoalPolicy(Q_dict, playerGrid, goal, self.softmaxBeta) for Q_dict, goal in zip(goalQDicts, targets)]
+
+        likelihoodList = [goalPolicies[goalIndex].get(action) for goalIndex, goal in enumerate(targets)]
+# round
+#         likelihoodList = [round(likelihood, 3) for likelihood in likelihoodList]
+        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
+        evidence = sum(posteriorUnnormalized)
+        posteriors = [posterior / evidence for posterior in posteriorUnnormalized]
+        return posteriors
+
+
+class ActWithMonitorIntentionThreshold:
+    def __init__(self, softmaxBeta, intentionThreshold):
+        self.softmaxBeta = softmaxBeta
+        self.intentionThreshold = intentionThreshold
+
+    def __call__(self, RLPolicy, intentionPolicies, playerGrid, target1, target2, priorList):
+        targets = list([target1, target2])
+        if abs(priorList[0] - priorList[1]) < self.intentionThreshold:
+            actionDict = RLPolicy[playerGrid]
+        else:
+            targetIndex = list(np.random.multinomial(1, priorList)).index(1)
+            goal = targets[targetIndex]
+            actionDict = intentionPolicies[targetIndex][playerGrid, goal]
+        if self.softmaxBeta < 0:
+            action = chooseMaxAcion(actionDict)
+        else:
+            action = chooseSoftMaxAction(actionDict, self.softmaxBeta)
+        aimPlayerGrid = tuple(np.add(playerGrid, action))
+        return aimPlayerGrid, action
+
+
+if __name__ == '__main__':
+    softmaxBeta = 2.5
+    inferGoalPosterior = InferGoalPosterior(softmaxBeta)
+    trajectory = [(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (1, 5), (1, 6), (1, 7), (1, 8), (2, 8), (1, 9), (2, 9), (3, 9), (4, 9)]
+    aimAction = [(0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0)]
+
+    posteriorList = []
+    priorList = [0.5, 0.5]
+
+    import os
+    import sys
+    sys.path.append(os.path.join(os.path.join(os.path.dirname(__file__), '..')))
+    from machinePolicy.showIntentionModel import RunVI, GetShowIntentionPolices
+
+    noise = 0.067
+    gamma = 0.9
+    goalReward = 30
+    actionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+    noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
+    gridSize = 15
+
+    threshold = 1
+    infoScale = 2
+    softmaxBetaInfer = 2.5
+    softmaxBetaAct = 2.5
+
+    runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
+    getPolices = GetShowIntentionPolices(runVI, softmaxBetaAct, infoScale)
+    target1 = (9, 4)
+    target2 = (4, 9)
+    obstacles = [(1, 1), (1, 3), (3, 1), (1, 4), (4, 1), (8, 0), (12, 0), (13, 10), (3, 0), (6, 7), (7, 10), (5, 0), (11, 10), (13, 1), (10, 12), (13, 12), (8, 9), (7, 13)]
+    RLQDict, goalQDicts, intentionQDict = getPolices(target1, target2, obstacles)
+
+    for playerGrid, action in zip(trajectory, aimAction):
+        posteriors = inferGoalPosterior(playerGrid, action, target1, target2, priorList, goalQDicts)
+        posteriorList.append(posteriors)
+        priorList = posteriors
+    posteriorList.insert(0, [0.5, 0.5])
+    print(posteriorList)

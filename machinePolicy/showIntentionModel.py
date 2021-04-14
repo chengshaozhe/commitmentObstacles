@@ -237,13 +237,13 @@ class ValueIteration():
 
     def __call__(self, S, A, T, R):
         gamma, epsilon, max_iter = self.gamma, self.epsilon, self.max_iter
-        excludedState = (set(self.terminals) | set(self.obstacles))
-        S_iter = tuple(filter(lambda s: s not in excludedState, S))
+        excludedState = (set(self.terminals))
+        S_iter = tuple(filter(lambda s: s not in self.terminals, S))
 
-        V_init = {s: 1 for s in S_iter}
-        Vterminals = {s: 0 for s in excludedState}
-
+        V_init = {s: 0.1 for s in S_iter}
+        Vterminals = {s: 0 for s in self.terminals}
         V_init.update(Vterminals)
+
         delta = 0
         for i in range(max_iter):
             V = V_init.copy()
@@ -254,6 +254,7 @@ class ValueIteration():
             if np.all(delta < self.epsilon):
                 # print(i)
                 break
+        V = {state: round(value, 4) for state, value in V.items()}
         return V
 
 
@@ -314,19 +315,18 @@ class RunVI:
 
         visualMap = 0
         if visualMap:
-            # mapValue = 'V'
-            # heatMapValue = eval(mapValue)
-            # y = dict_to_array(heatMapValue)
-            # # y = np.round(y)  # round value
-            # y = y.reshape((gridSize, gridSize))
-            # df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
-            # sns.heatmap(df, annot=True, fmt='.3f')
+            mapValue = 'V'
+            heatMapValue = eval(mapValue)
+            y = dict_to_array(heatMapValue)
+            # y = np.round(y)  # round value
+            y = y.reshape((gridSize, gridSize))
+            df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+            sns.heatmap(df, annot=True, fmt='.3f')
 
-            getPolicy = SoftmaxRLPolicy(Q_dict, softmaxBeta=2.5)
-            policy = {state: getPolicy(state) for state in S}
-
-            fig, ax = plt.subplots(1, 1, tight_layout=True)
-            draw_policy_4d_softmax(ax, policy, V=V, S=S, A=A)
+            # getPolicy = SoftmaxRLPolicy(Q_dict, softmaxBeta=2.5)
+            # policy = {state: getPolicy(state) for state in S}
+            # fig, ax = plt.subplots(1, 1, tight_layout=True)
+            # draw_policy_4d_softmax(ax, policy, V=V, S=S, A=A)
             plt.show()
 
         goalStatesTuple = tuple(goalStates) if len(goalStates) > 1 else goalStates[0]
@@ -388,7 +388,7 @@ class GetShowIntentionPolices:
 
         visualValueMap = 0
         if visualValueMap:
-            mapValue = 'V_A'
+            mapValue = 'V_goalA'
             heatMapValue = eval(mapValue)
             y = dict_to_array(heatMapValue)
             # y = np.round(y)  # round value
@@ -410,7 +410,7 @@ class GetShowIntentionPolices:
             Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
             intentionQDicts.append(Q_dict)
 
-        visualPolicyMap = 0
+        visualPolicyMap = 1
         if visualPolicyMap:
             Q_dictIntentionA = intentionQDicts[0]
             getPolicy = SoftmaxGoalPolicy(Q_dictIntentionA, self.softmaxBeta)
@@ -440,9 +440,10 @@ if __name__ == '__main__':
 
     condition = 1
 
-    goalStates = [(3, 9), (9, 3)]
+    goalStates = [(2, 6), (8, 12)]
     obstaclesMap2 = [(1, 1), (1, 3), (3, 1)]
     obstaclesMap6 = [(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)]
-    obstacles = obstaclesMap2
+
+    obstacles = [(11, 3), (14, 4), (13, 3), (9, 3), (11, 5), (11, 1), (10, 0), (8, 3), (11, 6), (4, 13), (2, 11), (7, 13), (6, 11), (1, 1), (1, 3), (5, 13), (4, 10), (2, 12)]
     target1, target2 = goalStates
     policies = runModel(target1, target2, obstacles)
