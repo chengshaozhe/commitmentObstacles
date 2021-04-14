@@ -203,7 +203,7 @@ if __name__ == "__main__":
     import pathos.multiprocessing as mp
     manipulatedVariables = co.OrderedDict()
     manipulatedVariables['threshold'] = [0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.3, 0.4, 0.5]  # list(np.round(np.arange(0.01, 0.1, 0.01), 2))  # [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
-    manipulatedVariables['infoScale'] = [0.01]  # list(np.arange(1, 10, 1))
+    manipulatedVariables['infoScale'] = [0.01, 0.05, 0.1, 0.5 1, 3, 5, 7]  # list(np.arange(1, 10, 1))
     manipulatedVariables['softmaxBetaInfer'] = [1, 2.5, 5, 10, 15]
     manipulatedVariables['softmaxBetaAct'] = [2.5]
 
