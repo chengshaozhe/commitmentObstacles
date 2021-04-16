@@ -117,13 +117,13 @@ class ValueIteration():
 
     def __call__(self, S, A, T, R):
         gamma, epsilon, max_iter = self.gamma, self.epsilon, self.max_iter
-        excludedState = (set(self.terminals) | set(self.obstacles))
-        S_iter = tuple(filter(lambda s: s not in excludedState, S))
+        excludedState = (set(self.terminals))
+        S_iter = tuple(filter(lambda s: s not in self.terminals, S))
 
-        V_init = {s: 1 for s in S_iter}
-        Vterminals = {s: 0 for s in excludedState}
-
+        V_init = {s: 0.1 for s in S_iter}
+        Vterminals = {s: 0 for s in self.terminals}
         V_init.update(Vterminals)
+
         delta = 0
         for i in range(max_iter):
             V = V_init.copy()
@@ -366,6 +366,9 @@ class RunVI:
         env.add_terminals([goalStates])
 
         S = tuple(it.product(range(env.nx), range(env.ny)))
+        excludedStates = set(obstacles_states)
+        S = tuple(filter(lambda s: s not in excludedStates, S))
+
         A = self.actionSpace
 
         mode = 1 - self.noise

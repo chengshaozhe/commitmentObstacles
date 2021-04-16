@@ -138,6 +138,20 @@ class GoalInfernce:
         return goalPosteriorList
 
 
+class InferPosterior:
+    def __init__(self, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+
+    def __call__(self, playerGrid, action, target1, target2, priorList, goalQDicts):
+        targets = [target1, target2]
+        goalPolicies = [getSoftmaxGoalPolicy(Q_dict, playerGrid, goal, self.softmaxBeta) for Q_dict, goal in zip(goalQDicts, targets)]
+        likelihoodList = [goalPolicies[goalIndex].get(action) for goalIndex, goal in enumerate(targets)]
+        posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
+        evidence = sum(posteriorUnnormalized)
+        posteriors = [posterior / evidence for posterior in posteriorUnnormalized]
+        return posteriors
+
+
 def calPosteriorByInterpolation(goalPosteriorList, xInterpolation):
     x = np.divide(np.arange(len(goalPosteriorList) + 1), len(goalPosteriorList))
     goalPosteriorList.append(1)
