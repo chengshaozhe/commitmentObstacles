@@ -156,12 +156,12 @@ class InferPosterior:
         trajectory = list(map(tuple, trajectory))
         priorList = self.initPrior
         posteriorsList = [priorList]
-        for playerGrid, action in zip(trajectory, aimAction):
-            _, _, transitionTableA, rewardA, _, V_goalA, Q_dictA, _ = self.runVI(target1, obstacles)
-            _, _, transitionTableB, rewardB, _, V_goalB, Q_dictB, _ = self.runVI(target2, obstacles)
-            goalQDicts = [Q_dictA, Q_dictB]
+        _, _, transitionTableA, rewardA, _, V_goalA, Q_dictA, _ = self.runVI(target1, obstacles)
+        _, _, transitionTableB, rewardB, _, V_goalB, Q_dictB, _ = self.runVI(target2, obstacles)
+        goalQDicts = [Q_dictA, Q_dictB]
+        targets = [target1, target2]
 
-            targets = [target1, target2]
+        for playerGrid, action in zip(trajectory, aimAction):
             goalPolicies = [getSoftmaxGoalPolicy(Q_dict, playerGrid, goal, self.softmaxBeta) for Q_dict, goal in zip(goalQDicts, targets)]
             likelihoodList = [goalPolicies[goalIndex].get(action) for goalIndex, goal in enumerate(targets)]
             posteriorUnnormalized = [prior * likelihood for prior, likelihood in zip(priorList, likelihoodList)]
