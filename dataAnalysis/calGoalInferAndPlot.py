@@ -227,6 +227,7 @@ def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
 
 
 def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
+    trajectory = list(map(tuple, trajectory))
     goalIndex = None
     if trajectory[-1] == target1:
         goalIndex = 0
@@ -234,6 +235,7 @@ def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
         goalIndex = 1
     else:
         print("trajectory no goal reach! ")
+        print(trajectory, target1, target2)
     goalPosteriorList = [posterior[goalIndex] for posterior in posteriors]
     return goalPosteriorList
 
@@ -261,6 +263,9 @@ if __name__ == '__main__':
     participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3']
     # participants = ['intentionModelChosen/threshold0.07infoScale8.5', 'intentionModel/threshold0.07infoScale8.5']
     # participants = ['human']
+    participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3', 'RL']
+    # participants = ['human']
+    # participants = ['test/human', 'test/intention', 'test/RL']
 
     # decisionStep = 2
     for decisionStep in [6]:  # , 4, 2, 1, 0]:
@@ -290,11 +295,11 @@ if __name__ == '__main__':
             # df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
 
             # df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
-            # df.to_csv("humanPosterior.csv")
 
             df['posteriors'] = df.apply(lambda x: inferPosterior(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+            # df.to_csv("humanPosterior.csv")
 
-            df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+            df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(x['posteriors'], eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
 
     # interpolation
             # xnew = np.linspace(0., 1., 15)
@@ -322,7 +327,7 @@ if __name__ == '__main__':
         sigArea = np.where(pvalus < 0.05)[0]
         print(sigArea)
 
-        lables = ['Humans', 'Intention Model']
+        lables = ['Humans', 'Intention Model', 'RL']
 
         lineWidth = 1
         # xnew = np.array(list(range(1, 16)))
@@ -330,7 +335,8 @@ if __name__ == '__main__':
         plt.rcParams['figure.dpi'] = 200
 
         colorList = [(0.8392156862745098, 0.15294117647058825, 0.1568627450980392),  # red
-                     (0.12156862745098039, 0.4666666666666667, 0.7058823529411765)]
+                     (0.12156862745098039, 0.4666666666666667, 0.7058823529411765),  # blue
+                     (0.6, 0.6, 0.6)]  # grey
         for i in range(len(statsList)):
             plt.plot(xnew, statsList[i], label=lables[i], linewidth=lineWidth, color=colorList[i])
             # plt.errorbar(xnew, statsList[i], yerr=ci95, label=lables[i])
@@ -356,7 +362,7 @@ if __name__ == '__main__':
         plt.legend(loc='best', fontsize=12)
         plt.xlabel("Agent's steps over time", fontsize=14, color='black')
         plt.ylabel('Posterior probability of goal-reached', fontsize=14, color='black')
-        plt.ylim((0.47, 1))
+        plt.ylim((0.47, 1.05))
 
         plt.xticks(fontsize=12, color='black')
         plt.yticks(fontsize=12, color='black')
