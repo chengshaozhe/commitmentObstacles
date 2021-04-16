@@ -13,6 +13,7 @@ from scipy.interpolate import interp1d
 from dataAnalysis import calculateSE, calculateAvoidCommitmnetZone
 from machinePolicy.onlineVIWithObstacle import RunVI
 from dataAnalysis import *
+import seaborn as sns
 
 
 class SoftmaxPolicy:
@@ -203,6 +204,17 @@ def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
     return goalPosteriorList
 
 
+def calParticipantType(name):
+    if 'max' in name:
+        participantsType = 'Desire Model'
+    if 'intention' in name:
+        participantsType = 'Intention Model'
+    else:
+        participantsType = 'Humans'
+
+    return participantsType
+
+
 if __name__ == '__main__':
     gridSize = 15
     noise = 0.067
@@ -224,124 +236,59 @@ if __name__ == '__main__':
     participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
     participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
     participants = ['human', 'intentionModel/threshold0.07infoScale8.5']
-    # participants = ['intentionModelChosen/threshold0.07infoScale8.5', 'intentionModel/threshold0.07infoScale8.5']
-    participants = ['human']
-    # decisionStep = 2
-    for decisionStep in [6]:  # , 4, 2, 1, 0]:
-        statsList = []
-        semList = []
-        statDFList = []
+    participants = ['intentionModel/threshold0.07infoScale8.5']
 
-        for participant in participants:
-            dataPath = os.path.join(resultsPath, participant)
-            df = pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False)
-            nubOfSubj = len(df["name"].unique())
-            print(participant, nubOfSubj)
+    dataPaths = [os.path.join(resultsPath, participant) for participant in participants]
+    dfList = [pd.concat(map(pd.read_csv, glob.glob(os.path.join(dataPath, '*.csv'))), sort=False) for dataPath in dataPaths]
 
-            df = df[(df['targetDiff'] == '0') | (df['targetDiff'] == 0)]
-            df = df[(df['conditionName'] == 'expCondition1') | (df['conditionName'] == 'expCondition2')]
-            df = df[(df['decisionSteps'] == decisionStep)]
+    humanDataPath = os.path.join(os.path.join(DIRNAME, '..'), 'dataAnalysis/humanPosterior.csv')
+    humanDf = pd.read_csv(humanDataPath)
+    dfList.append(humanDf)
 
-            df["trajLength"] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
+    df = pd.concat(dfList, sort=True)
+    df['targetDiff'] = df.apply(lambda x: str(x['targetDiff']), axis=1)
+    df = df[(df['targetDiff'] == '0')]
+    df['participantsType'] = df.apply(lambda x: calParticipantType(x['name']), axis=1)
+    df["trajLength"] = df.apply(lambda x: len(eval(x['trajectory'])), axis=1)
 
-            df['isValidTraj'] = df.apply(lambda x: isValidTraj(eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
-            df = df[df['isValidTraj'] == 1]
+    df['isValidTraj'] = df.apply(lambda x: isValidTraj(eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+    df = df[df['isValidTraj'] == 1]
 
-            chosenSteps = 16
-            df = df[(df["trajLength"] > chosenSteps)]
+    df = df.loc[df.decisionSteps == 6]
 
-            # df = df[(df["trajLength"] > 14) & (df["trajLength"] < 25)]
-            # df['goalPosterior'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
+    chosenSteps = 16
+    df = df[(df["trajLength"] > chosenSteps)]
+    xnew = np.array(list(range(chosenSteps + 1)))
 
-            df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
-            # df.to_csv("humanPosterior.csv")
+    df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])) if x['participantsType'] != 'Humans' else eval(x['goalPosteriorList']), axis=1)
 
-            # if participant == 'human':
-            #     df['goalPosteriorList'] = df.apply(lambda x: goalInfernce(eval(x['trajectory']), eval(x['aimAction']), eval(x['target1']), eval(x['target2']), eval(x['obstacles'])), axis=1)
-            # else:
-            #     df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
+    df["Length"] = df.apply(lambda x: len(x['goalPosteriorList']), axis=1)
 
-    # interpolation
-            # xnew = np.linspace(0., 1., 15)
-            # df['goalPosterior'] = df.apply(lambda x: calPosteriorByInterpolation(x['goalPosteriorList'], xnew), axis=1)
+    df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
 
-            xnew = np.array(list(range(chosenSteps + 1)))
-            df['goalPosterior'] = df.apply(lambda x: calPosteriorByChosenSteps(x['goalPosteriorList'], xnew), axis=1)
-            # df['goalPosterior'] = df.apply(lambda x: np.round(np.array(x['goalPosterior']) * 100), axis=1)
+    df = df.loc[:, ["participantsType", 'goalPosterior', 'decisionSteps']]
 
-            goalPosterior = np.array(df['goalPosterior'].tolist())
-            goalPosteriorMean = np.mean(goalPosterior, axis=0)
-            goalPosteriorStd = np.divide(np.std(goalPosterior, axis=0, ddof=1), np.sqrt(len(goalPosterior)))
-            statsList.append(goalPosteriorMean)
-            semList.append(goalPosteriorStd)
+    subjectTypes = df['participantsType'].unique()
+    dfLists = [df.loc[df.participantsType == subjectType] for subjectType in subjectTypes]
 
-            def arrMean(df, colnames):
-                arr = np.array(df[colnames].tolist())
-                return np.mean(arr, axis=0)
-            grouped = pd.DataFrame(df.groupby('name').apply(arrMean, 'goalPosterior'))
-            statArr = np.round(np.array(grouped.iloc[:, 0].tolist()).T, 1)
-            statDFList.append(statArr)
+    statDf = pd.concat([pd.concat([pd.DataFrame(list(zip(xnew, row['goalPosterior'], [subjectType] * len(xnew))), columns=['timeStep', 'goalPosterior', 'participantsType']) for i, row in df.iterrows()]) for df, subjectType in zip(dfLists, subjectTypes)])
 
-        pvalus = np.array([ttest_ind(statDFList[0][i], statDFList[1][i])[1] for i in range(statDFList[0].shape[0])])
+    colorList = [(0.8392156862745098, 0.15294117647058825, 0.1568627450980392),  # red
+                 (0.12156862745098039, 0.4666666666666667, 0.7058823529411765)]
+    # colorList = [(0.8392156862745098, 0.15294117647058825, 0.1568627450980392)]
+    ax = sns.lineplot('timeStep', 'goalPosterior', hue='participantsType', data=statDf, err_style="band", ci=95, palette=colorList, alpha=0.3)
 
-        sigArea = np.where(pvalus < 0.05)[0]
-        print(sigArea)
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
 
-        lables = ['Humans', 'Intention Model']
+    plt.legend(loc='best', fontsize=12)
+    plt.xlabel("Agent's steps over time", fontsize=14, color='black')
+    plt.ylabel('Posterior probability of goal-reached', fontsize=14, color='black')
+    plt.ylim((0.47, 1))
 
-        lineWidth = 1
-        # xnew = np.array(list(range(1, 16)))
-        fig, ax = plt.subplots()
-        plt.rcParams['figure.dpi'] = 200
-
-        colorList = [(0.8392156862745098, 0.15294117647058825, 0.1568627450980392),  # red
-                     (0.12156862745098039, 0.4666666666666667, 0.7058823529411765)]
-        for i in range(len(statsList)):
-            plt.plot(xnew, statsList[i], label=lables[i], linewidth=lineWidth, color=colorList[i])
-            # plt.errorbar(xnew, statsList[i], yerr=ci95, label=lables[i])
-
-            from scipy.stats import t, norm
-            alpha = 0.05
-            # ci95t = semList[i] * t.ppf(1 - alpha / 2, degreeOfFreedom)
-            t_ci = 2.086  # two-tailed 95% z_ci = 1.96
-            ci95 = t_ci * semList[i]
-            plt.fill(np.concatenate([xnew, xnew[::-1]]), np.concatenate([statsList[i] - ci95, (statsList[i] + ci95)[::-1]]), color=colorList[i], alpha=.2)
-
-        # sns.regplot(xnew, statsList[i], data=ans.loc[ans.dataset == "III"], scatter_kws={"s": 80},robust=True, ci=95)
-
-        ax.spines['right'].set_color('none')
-        ax.spines['top'].set_color('none')
-
-    # sig area line
-        # xnewSig = xnew[sigArea]
-        # ySig = [stats[sigArea] for stats in statsList]
-        # for sigLine in [xnewSig[0], xnewSig[-1]]:
-        #     plt.plot([sigLine] * 10, np.linspace(0.5, 1., 10), color='black', linewidth=2, linestyle="--")
-
-        plt.legend(loc='best', fontsize=12)
-        plt.xlabel("Agent's steps over time", fontsize=14, color='black')
-        plt.ylabel('Posterior probability of goal-reached', fontsize=14, color='black')
-        plt.ylim((0.47, 1))
-
-        plt.xticks(fontsize=12, color='black')
-        plt.yticks(fontsize=12, color='black')
-        plt.rcParams['svg.fonttype'] = 'none'
-        # plt.savefig('/Users/chengshaozhe/Downloads/exp2bStep{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
-
-        # plt.title('Inferred Goal Through Time', fontsize=fontSize, color='black')
-        plt.show()
-
-    # test
-        # condition1 = statDFList[0].T
-        # condition2 = statDFList[1].T
-        # import mne
-        # from mne import io
-        # from mne.stats import permutation_cluster_test
-        # T_obs, clusters, cluster_p_values, H0 = \
-        #     permutation_cluster_test([condition1, condition2], n_permutations=1000,
-        #                              tail=1,
-        #                              out_type='mask')
-        # print(T_obs)
-        # print(clusters)
-        # print(cluster_p_values)
-        # plt.show()
+    plt.xticks(fontsize=12, color='black')
+    plt.yticks(fontsize=12, color='black')
+    plt.rcParams['svg.fonttype'] = 'none'
+    # plt.title('Inferred Goal Through Time', fontsize=fontSize, color='black')
+    # plt.savefig('/Users/chengshaozhe/Downloads/exp2bStep{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
+    plt.show()

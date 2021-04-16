@@ -306,6 +306,7 @@ class RunVI:
 
         valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles)
         V = valueIteration(S, A, T, R)
+        V.update(terminalValue)
 
         V_arr = V_dict_to_array(V, S)
         Q = V_to_Q(V=V_arr, T=T_arr, R=R_arr, gamma=gamma)
@@ -313,20 +314,20 @@ class RunVI:
         Q_dict = {s: {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
 ###
 
-        visualMap = 0
+        visualMap = 1
         if visualMap:
-            mapValue = 'V'
-            heatMapValue = eval(mapValue)
-            y = dict_to_array(heatMapValue)
-            # y = np.round(y)  # round value
-            y = y.reshape((gridSize, gridSize))
-            df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
-            sns.heatmap(df, annot=True, fmt='.3f')
+            # mapValue = 'V'
+            # heatMapValue = eval(mapValue)
+            # y = dict_to_array(heatMapValue)
+            # # y = np.round(y)  # round value
+            # y = y.reshape((gridSize, gridSize))
+            # df = pd.DataFrame(y, columns=[x for x in range(gridSize)])
+            # sns.heatmap(df, annot=True, fmt='.3f')
 
-            # getPolicy = SoftmaxRLPolicy(Q_dict, softmaxBeta=2.5)
-            # policy = {state: getPolicy(state) for state in S}
-            # fig, ax = plt.subplots(1, 1, tight_layout=True)
-            # draw_policy_4d_softmax(ax, policy, V=V, S=S, A=A)
+            getPolicy = SoftmaxRLPolicy(Q_dict, softmaxBeta=3)
+            policy = {state: getPolicy(state) for state in S}
+            fig, ax = plt.subplots(1, 1, tight_layout=True)
+            draw_policy_4d_softmax(ax, policy, V=V, S=S, A=A)
             plt.show()
 
         goalStatesTuple = tuple(goalStates) if len(goalStates) > 1 else goalStates[0]
@@ -365,6 +366,8 @@ class GetShowIntentionPolices:
 
         V_A = runValueIterationA(S, A, transitionTableA, infoRewardA)
         V_B = runValueIterationB(S, A, transitionTableB, infoRewardB)
+        # V_A.update({targetA: 40})
+        # V_B.update({targetB: 40})
 
 # 2
         # getLikelihoodRewardFunction = GetLikelihoodRewardFunction(transitionRL, goalPoliciesDict, self.intentionInfoScale)
@@ -388,7 +391,7 @@ class GetShowIntentionPolices:
 
         visualValueMap = 0
         if visualValueMap:
-            mapValue = 'V_goalA'
+            mapValue = 'V_A'
             heatMapValue = eval(mapValue)
             y = dict_to_array(heatMapValue)
             # y = np.round(y)  # round value
@@ -410,7 +413,7 @@ class GetShowIntentionPolices:
             Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
             intentionQDicts.append(Q_dict)
 
-        visualPolicyMap = 0
+        visualPolicyMap = 1
         if visualPolicyMap:
             Q_dictIntentionA = intentionQDicts[0]
             getPolicy = SoftmaxGoalPolicy(Q_dictIntentionA, self.softmaxBeta)
@@ -434,7 +437,7 @@ if __name__ == '__main__':
 
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    softmaxBeta = 2.5
+    softmaxBeta = 3
     intentionInfoScale = 1
     runModel = GetShowIntentionPolices(runVI, softmaxBeta, intentionInfoScale)
 
@@ -445,5 +448,8 @@ if __name__ == '__main__':
     obstaclesMap6 = [(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)]
 
     obstacles = [(11, 3), (14, 4), (13, 3), (9, 3), (11, 5), (11, 1), (10, 0), (8, 3), (11, 6), (4, 13), (2, 11), (7, 13), (6, 11), (1, 1), (1, 3), (5, 13), (4, 10), (2, 12)]
+
+    goalStates = [(3, 9), (9, 3)]
+    obstacles = obstaclesMap2
     target1, target2 = goalStates
     policies = runModel(target1, target2, obstacles)
