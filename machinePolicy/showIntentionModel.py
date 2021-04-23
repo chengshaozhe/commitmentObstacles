@@ -78,6 +78,36 @@ def R_dict(S=(), A=(), T={}, reward_func=None):
     return {s: {a: {s_n: reward_func(s, a, s_n) for s_n in T[s][a]} for a in A} for s in S}
 
 
+def transition(state, action):
+    nextState = tuple(np.array(state) + np.array(action))
+    return nextState
+
+
+class StochasticTransition:
+    def __init__(self, noise, noiseActionSpace, terminals, isStateValid):
+        self.noise = noise
+        self.noiseActionSpace = noiseActionSpace
+        self.terminals = terminals
+        self.isStateValid = isStateValid
+
+    def __call__(self, state, action):
+        if state in self.terminals:
+            return {state: 1}
+
+        nextState = transition(state, action)
+        if not self.isStateValid(nextState):
+            return {state: 1}
+
+        possibleNextStates = (transition(state, noiseAction) for noiseAction in self.noiseActionSpace)
+        validNextStates = list(filter(self.isStateValid, possibleNextStates))
+
+        noiseProbAverged = self.noise / (len(validNextStates) - 1)
+        nextStateProb = {s: noiseProbAverged for s in validNextStates}
+        nextStateProb.update({nextState: 1.0 - self.noise})
+
+        return nextStateProb
+
+
 def grid_transition(s, a, is_valid=None, terminals=()):
     if s in terminals:
         return {s: 1}
@@ -289,8 +319,7 @@ class RunVI:
         excludedStates = set(obstacles)
         S = tuple(filter(lambda s: s not in excludedStates, S))
 
-        mode = 1 - noise
-        transition_function = ft.partial(grid_transition_stochastic, noiseSpace=noiseSpace, terminals=goalStates, is_valid=env.is_state_valid, mode=mode)
+        transition_function = StochasticTransition(noise, noiseSpace, goalStates, env.is_state_valid)
 
         T = {s: {a: transition_function(s, a) for a in A} for s in S}
         T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
@@ -391,7 +420,7 @@ class GetShowIntentionPolices:
 
         visualValueMap = 0
         if visualValueMap:
-            mapValue = 'V_A'
+            mapValue = 'V_RL'
             heatMapValue = eval(mapValue)
             y = dict_to_array(heatMapValue)
             # y = np.round(y)  # round value
@@ -413,7 +442,7 @@ class GetShowIntentionPolices:
             Q_dict = {(s, goal): {a: Q[si, ai] for (ai, a) in enumerate(A)} for (si, s) in enumerate(S)}
             intentionQDicts.append(Q_dict)
 
-        visualPolicyMap = 0
+        visualPolicyMap = 1
         if visualPolicyMap:
             Q_dictIntentionA = intentionQDicts[0]
             getPolicy = SoftmaxGoalPolicy(Q_dictIntentionA, self.softmaxBeta)
@@ -447,9 +476,9 @@ if __name__ == '__main__':
     obstaclesMap2 = [(1, 1), (1, 3), (3, 1)]
     obstaclesMap6 = [(3, 3), (4, 0), (3, 1), (3, 5), (5, 3), (1, 3), (0, 4)]
 
-    obstacles = [(11, 3), (14, 4), (13, 3), (9, 3), (11, 5), (11, 1), (10, 0), (8, 3), (11, 6), (4, 13), (2, 11), (7, 13), (6, 11), (1, 1), (1, 3), (5, 13), (4, 10), (2, 12)]
+    # obstacles = [(11, 3), (14, 4), (13, 3), (9, 3), (11, 5), (11, 1), (10, 0), (8, 3), (11, 6), (4, 13), (2, 11), (7, 13), (6, 11), (1, 1), (1, 3), (5, 13), (4, 10), (2, 12)]
 
-    goalStates = [(3, 9), (9, 3)]
-    obstacles = obstaclesMap2
+    goalStates = [(5, 9), (9, 5)]
+    obstacles = obstaclesMap6
     target1, target2 = goalStates
     policies = runModel(target1, target2, obstacles)

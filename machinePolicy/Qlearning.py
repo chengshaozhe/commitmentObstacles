@@ -1,96 +1,50 @@
-
-import gym
-import itertools
-import matplotlib
-import matplotlib.style
+import random
 import numpy as np
-import pandas as pd
-import sys
-
-import gym_windy_gridworlds
-env = gym.make('WindyGridWorld-v0')
-
 from collections import defaultdict
-# from windy_gridworld import WindyGridworldEnv
-from gym import plotting
-
-matplotlib.style.use('ggplot')
-# env = WindyGridworldEnv()
 
 
-def createEpsilonGreedyPolicy(Q, epsilon, num_actions):
-
-    def policyFunction(state):
-
-        Action_probabilities = np.ones(num_actions,
-                                       dtype=float) * epsilon / num_actions
-
-        best_action = np.argmax(Q[state])
-        Action_probabilities[best_action] += (1.0 - epsilon)
-        return Action_probabilities
-
-    return policyFunction
+def initQtable(actions):
+    qTable = defaultdict(lambda: [0.0] * len(actions))
+    return qTable
 
 
-def qLearning(env, num_episodes, discount_factor=1.0,
-              alpha=0.6, epsilon=0.1):
-    """
-    Q-Learning algorithm: Off-policy TD control.
-    Finds the optimal greedy policy while improving
-    following an epsilon-greedy policy"""
+class UpdateQTable:
+    def __init__(self, discountFactor, learningRate):
+        self.discountFactor = discountFactor
+        self.learningRate = learningRate
 
-    # Action value function
-    # A nested dictionary that maps
-    # state -> (action -> action-value).
-    Q = defaultdict(lambda: np.zeros(env.action_space.n))
-
-    # Keeps track of useful statistics
-    stats = plotting.EpisodeStats(
-        episode_lengths=np.zeros(num_episodes),
-        episode_rewards=np.zeros(num_episodes))
-
-    # Create an epsilon greedy policy function
-    # appropriately for environment action space
-    policy = createEpsilonGreedyPolicy(Q, epsilon, env.action_space.n)
-
-    # For every episode
-    for ith_episode in range(num_episodes):
-
-        # Reset the environment and pick the first action
-        state = env.reset()
-
-        for t in itertools.count():
-
-            # get probabilities of all actions from current state
-            action_probabilities = policy(state)
-
-            # choose action according to
-            # the probability distribution
-            action = np.random.choice(np.arange(
-                len(action_probabilities)),
-                p=action_probabilities)
-
-            # take action and get reward, transit to next state
-            next_state, reward, done, _ = env.step(action)
-
-            # Update statistics
-            stats.episode_rewards[ith_episode] += reward
-            stats.episode_lengths[ith_episode] = t
-
-            # TD Update
-            best_next_action = np.argmax(Q[next_state])
-            td_target = reward + discount_factor * Q[next_state][best_next_action]
-            td_delta = td_target - Q[state][action]
-            Q[state][action] += alpha * td_delta
-
-            # done is True if episode terminated
-            if done:
-                break
-
-            state = next_state
-
-    return Q, stats
+    def __call__(self, qTable, state, action, reward, nextState):
+        currentQ = qTable[state][action]
+        newQ = reward + self.discountFactor * max(qTable[nextState])
+        qTable[state][action] += self.learningRate * (newQ - currentQ)
+        return qTable
 
 
-Q, stats = qLearning(env, 1000)
-plotting.plot_episode_stats(stats)
+class GetAction:
+    def __init__(self, epsilon, actions, sampleByValue):
+        self.epsilon = epsilon
+        self.actions = actions
+        self.sampleByValue = sampleByValue
+
+    def __call__(self, qTable, state):
+        if np.random.rand() < self.epsilon:
+            actionIndex = np.random.choice(range(len(self.actions)))
+            action = self.actions[actionIndex]
+        else:
+            stateAction = qTable[state]
+            actionIndex = self.sampleByValue(stateAction)
+            action = self.actions[actionIndex]
+        return actionIndex
+
+
+def argMax(stateAction):
+    maxIndexList = []
+    maxValue = stateAction[0]
+    for index, value in enumerate(stateAction):
+        if value > maxValue:
+            maxIndexList.clear()
+            maxValue = value
+            maxIndexList.append(index)
+        elif value == maxValue:
+            maxIndexList.append(index)
+    return random.choice(maxIndexList)

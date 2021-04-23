@@ -193,6 +193,7 @@ def isDecisionStepInZone(trajectory, target1, target2, decisionSteps):
 
 
 def calGoalPosteriorFromAll(posteriors, trajectory, target1, target2):
+    trajectory = list(map(tuple, trajectory))
     goalIndex = None
     if trajectory[-1] == target1:
         goalIndex = 0
@@ -250,7 +251,7 @@ if __name__ == '__main__':
     df = df[(df["trajLength"] > chosenSteps)]
     xnew = np.array(list(range(chosenSteps + 1)))
 
-    df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])) if x['participantsType'] != 'Humans' else eval(x['goalPosteriorList']), axis=1)
+    df['goalPosteriorList'] = df.apply(lambda x: calGoalPosteriorFromAll(eval(x['posteriors']), eval(x['trajectory']), eval(x['target1']), eval(x['target2'])), axis=1)
 
     df["Length"] = df.apply(lambda x: len(x['goalPosteriorList']), axis=1)
 
