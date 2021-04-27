@@ -365,6 +365,25 @@ class RunVI:
         return S, A, T, R, gamma, V, Q_dictGoal, Q_dict
 
 
+class GetGoalPolices:
+    def __init__(self, runVI, softmaxBeta):
+        self.softmaxBeta = softmaxBeta
+        self.runVI = runVI
+
+    def __call__(self, targetA, targetB, obstacles):
+        S, A, transitionRL, rewardRL, gamma, V_RL, _, RLDict = self.runVI([targetA, targetB], obstacles)
+        _, _, transitionTableA, rewardA, _, V_goalA, Q_dictA, _ = self.runVI(targetA, obstacles)
+        _, _, transitionTableB, rewardB, _, V_goalB, Q_dictB, _ = self.runVI(targetB, obstacles)
+        goalQDict = [Q_dictA, Q_dictB]
+
+        getPolicyA = SoftmaxGoalPolicy(Q_dictA, self.softmaxBeta)
+        getPolicyB = SoftmaxGoalPolicy(Q_dictB, self.softmaxBeta)
+        policyA = {state: getPolicyA(state, targetA) for state in transitionTableA.keys()}
+        policyB = {state: getPolicyB(state, targetB) for state in transitionTableB.keys()}
+
+        return policyA, policyB
+
+
 class GetShowIntentionPolices:
     def __init__(self, runVI, softmaxBeta, intentionInfoScale):
         self.softmaxBeta = softmaxBeta
