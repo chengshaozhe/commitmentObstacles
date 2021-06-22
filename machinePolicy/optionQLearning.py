@@ -168,23 +168,23 @@ def sampleFromStateProbDict(probDict):
     return state
 
 
-def QLearning(episodes):
-    qTable = initQtable(actionSpace)
-    for episode in range(episodes):
-        state = reset()
-        for step in range(maxRunningSteps):
-            actionIndex = getAction(qTable, state)
-            action = actionSpace[actionIndex]
-            nextStatesDict = stochasticTransition(state, action)
-            nextState = sampleFromStateProbDict(nextStatesDict)
-            reward = rewardFunction(state, action, nextState)
-            done = isTerminal(nextState)
+# def QLearning(episodes):
+#     qTable = initQtable(actionSpace)
+#     for episode in range(episodes):
+#         state = reset()
+#         for step in range(maxRunningSteps):
+#             actionIndex = getAction(qTable, state)
+#             action = actionSpace[actionIndex]
+#             nextStatesDict = stochasticTransition(state, action)
+#             nextState = sampleFromStateProbDict(nextStatesDict)
+#             reward = rewardFunction(state, action, nextState)
+#             done = isTerminal(nextState)
 
-            qTable = updateQTable(qTable, state, actionIndex, reward, nextState)
-            state = nextState
-            if done:
-                break
-    return qTable
+#             qTable = updateQTable(qTable, state, actionIndex, reward, nextState)
+#             state = nextState
+#             if done:
+#                 break
+#     return qTable
 
 
 class Options:
@@ -192,6 +192,12 @@ class Options:
         self.name = name
         self.policy = policy
         self.terminals = terminals
+
+    def isTerminal(self, state):
+        if state in self.terminals:
+            return True
+        else:
+            return False
 
 
 class CalTerminalProb:
@@ -214,100 +220,52 @@ def calTerminalProb(state, options):
     return terminalProb
 
 
-class OptionValueIteration():
-    def __init__(self, calTerminalProb, gamma, epsilon=0.001, max_iter=100, terminals=[], obstacles=[]):
-        self.calTerminalProb = calTerminalProb
-        self.gamma = gamma
-        self.epsilon = epsilon
-        self.max_iter = max_iter
-        self.terminals = terminals
-        self.obstacles = obstacles
-        self.calTerminalProb = calTerminalProb
+def OptionQLearning(episodes):
+    qTable = initQtable(optionSpace)
+    for episode in range(episodes):
+        state = reset()
+        for step in range(maxRunningSteps):
+            optionIndex = getAction(qTable, state)
+            option = optionSpace[optionIndex]
+            nextState, done, reward = runOption(state, option)
 
-    def __call__(self, S, O, A, T, R):
-        gamma, epsilon, max_iter = self.gamma, self.epsilon, self.max_iter
-        excludedState = (set(self.terminals))
-        S_iter = tuple(filter(lambda s: s not in self.terminals, S))
-
-        Q_init = {s: {o: 0.1 for o in O} for s in S_iter}
-        Qterminals = {s: {o: 0 for o in O} for s in self.terminals}
-        Q_init.update(Qterminals)
-
-        delta = 0
-        for i in range(max_iter):
-            Q = Q_init.copy()
-            for s, o in it.product(S_iter, O):
-                optionValues = [o.policy[s][a] * sum([p * (R[s][a][sn] + gamma * (1 - self.calTerminalProb(sn, o)) * Q[sn][o]) for (sn, p) in T[s][a].items()]) for a in A]
-                # optionValues = [sum([o.policy[s][a] * p * (R[s][a][sn] + gamma * (1 - self.calTerminalProb(sn, o)) * Q[sn][o]) for (sn, p) in T[s][a].items()]) for a in A]
-
-                # Q_init[s][o] = max(optionValues)
-                Q_init[s][o] = round(max(optionValues), 4)
-
-                # Q_init[s][o] = round(max([o.policy[s][a] * sum([p * (R[s][a][sn] + gamma * (1 - self.calTerminalProb(sn, o)) * Q[sn][o]) for (sn, p) in T[s][a].items()]) for a in A]), 4)
-
-            print(Q_init[(5, 5)])
-            print(Q[(5, 5)])
-            print('=' * 100)
-            # QLast = Q_init
-            delta = np.array([[abs(Q[s][o] - Q_init[s][o]) for s in S_iter] for o in O])
-            # if np.max(delta) < self.epsilon:
-            #     print(delta, i)
-            #     break
-
-        return Q
+            qTable = updateQTable(qTable, state, optionIndex, reward, nextState)
+            state = nextState
+            if done:
+                break
+    return qTable
 
 
-class RunOptionVI:
-    def __init__(self, gridSize, optionSpace, actionSpace, noiseSpace, noise, gamma, goalReward):
-        self.gridSize = gridSize
-        self.optionSpace = optionSpace
-        self.actionSpace = actionSpace
-        self.noiseSpace = noiseSpace
-        self.noise = noise
-        self.gamma = gamma
-        self.goalReward = goalReward
+def runOption(state, option, gamma=0.9):
+    done = False
+    totalReward = 0
+    totalSteps = 0
 
-    def __call__(self, goalStates, obstacles):
-        gridSize, O, A, noiseSpace, noise, gamma, goalReward = self.gridSize, self.optionSpace, self.actionSpace, self.noiseSpace, self.noise, self.gamma, self.goalReward
+    terminated = False
 
-        env = GridWorld("test", nx=gridSize, ny=gridSize)
+    while not terminated:
+        action = chooseSoftMaxActionDict(option.policy[state])
+        terminated = option.isTerminal(state)
+        nextStatesDict = stochasticTransition(state, action)
+        nextState = sampleFromStateProbDict(nextStatesDict)
+        reward = rewardFunction(state, action, nextState)
+        done = isTerminal(nextState)
+        totalReward += reward * (gamma ** totalSteps)
 
-        obstacles = list(obstacles)  # list of tuples
-        if isinstance(goalStates, tuple):
-            goalStates = [goalStates]
-        else:
-            goalStates = list(goalStates)
+        totalSteps += 1
+        if done:
+            break
 
-        terminalValue = {s: goalReward for s in goalStates}
+        state = nextState
+    return nextState, done, totalReward
 
-        env.add_feature_map("goal", terminalValue, default=0)
-        env.add_terminals(goalStates)
-        env.add_obstacles(obstacles)
 
-        S = tuple(it.product(range(env.nx), range(env.ny)))
-
-        excludedStates = set(obstacles)
-        S = tuple(filter(lambda s: s not in excludedStates, S))
-
-        transition_function = StochasticTransition(noise, noiseSpace, goalStates, env.is_state_valid)
-
-        T = {s: {a: transition_function(s, a) for a in A} for s in S}
-        T_arr = np.asarray([[[T[s][a].get(s_n, 0) for s_n in S]
-                             for a in A] for s in S])
-
-        stepCost = - self.goalReward / (self.gridSize * 2)
-        reward_func = ft.partial(
-            grid_reward, env=env, const=stepCost, terminals=goalStates)
-
-        R = {s: {a: {sn: reward_func(s, a, sn) for sn in S} for a in A} for s in S}
-        R_arr = np.asarray([[[R[s][a].get(s_n, 0) for s_n in S]
-                             for a in A] for s in S])
-
-        terminalProbConst = 0.1
-        calTerminalProb = CalTerminalProb(terminalProbConst)
-        valueIteration = OptionValueIteration(calTerminalProb, gamma, epsilon=0.001, max_iter=50, terminals=goalStates, obstacles=obstacles)
-        Q = valueIteration(S, O, A, T, R)
-        return Q
+def chooseSoftMaxActionDict(actionDict, softmaxBeta=3):
+    actionValue = list(actionDict.values())
+    softmaxProbabilityList = calculateSoftmaxProbability(actionValue, softmaxBeta)
+    action = list(actionDict.keys())[
+        list(np.random.multinomial(1, softmaxProbabilityList)).index(1)]
+    return action
 
 
 if __name__ == '__main__':
@@ -320,24 +278,19 @@ if __name__ == '__main__':
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
 
     terminals = [(5, 9), (9, 5)]
+    isTerminal = IsTerminal(terminals)
+
     stochasticTransition = StochasticTransition(noise, noiseActionSpace, terminals, isStateValid)
 
     goalReward = 30
     stepCost = - goalReward / (gridSize[0] * 2)
     rewardFunction = RewardFunction(goalReward, stepCost, terminals)
 
-    # isTerminal = IsTerminal(terminals)
-    # valueIteration = ValueIteration(gamma, epsilon=0.001, max_iter=100, terminals=goalStates, obstacles=obstacles)
-    # V = valueIteration(S, A, T, R)
-    # V.update(terminalValue)
+    reset = Reset(gridSize, isStateValid)
 
-    # fig, ax = plt.subplots(1, 1, tight_layout=True)
-    # draw_policy_4d_softmax(ax, policy, V=VDict, S=S, A=actionSpace)
-    # plt.show()
-
-##
     gamma = 0.9
     runVI = RunVI(gridSize[0], actionSpace, noiseActionSpace, noise, gamma, goalReward)
+
     softmaxBeta = 3
     getGetGoalPolices = GetGoalPolices(runVI, softmaxBeta)
 
@@ -345,13 +298,45 @@ if __name__ == '__main__':
     policyA, policyB = getGetGoalPolices(targetA, targetB, obstacles)
     optionA = Options('a', policyA, targetA)
     optionB = Options('b', policyB, targetB)
-
     optionSpace = [optionA, optionB]
-    runOptionVI = RunOptionVI(gridSize[0], optionSpace, actionSpace, noiseActionSpace, noise, gamma, goalReward)
-    Q = runOptionVI(terminals, obstacles)
+##
+# q-learing
+    discountFactor = 0.9
+    learningRate = 0.5
+    updateQTable = UpdateQTable(discountFactor, learningRate)
+    epsilon = 0.1
+    getAction = GetAction(epsilon, optionSpace, chooseSoftMaxAction)
+
+    episodes = 30000
+    maxRunningSteps = 100
+
+    QDict = OptionQLearning(episodes)
+
     # state = (5, 6)
     state = (5, 5)
+    state = (4, 2)
 
     # Q[state].name
-    print(Q[state][optionA])
-    print(Q[state][optionB])
+    print(QDict[state])
+
+    # print(QDict[state][optionA])
+    # print(QDict[state][optionB])
+    VDict = {state: np.max(values) for state, values in QDict.items()}
+
+    y = dict_to_array(VDict)
+    # y = np.round(y)  # round value
+    y = y.reshape((gridSize[0], gridSize[1]))
+    df = pd.DataFrame(y, columns=[x for x in range(gridSize[0])])
+    sns.heatmap(df, annot=True, fmt='.3f')
+
+    # softmaxBeta = 3
+    # getPolicy = SoftmaxPolicy(softmaxBeta, QDict, optionSpace)
+
+    # S = tuple(it.product(range(gridSize[0]), range(gridSize[1])))
+    # excludedStates = set(obstacles)
+    # S = tuple(filter(lambda s: s not in excludedStates, S))
+    # policy = {state: getPolicy(state) for state in S}
+
+    # fig, ax = plt.subplots(1, 1, tight_layout=True)
+    # draw_policy_4d_softmax(ax, policy, V=VDict, S=S, A=optionSpace)
+    plt.show()

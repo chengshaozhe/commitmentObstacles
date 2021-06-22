@@ -233,13 +233,13 @@ if __name__ == '__main__':
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
 
-    # participants = ['human', 'RL']
+    participants = ['human', 'RL']
     # participants = ['human', 'intentionModel/threshold0.5infoScale11']
-    participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
-    participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
-    participants = ['human', 'intentionModel/threshold0.07infoScale8.5']
-    # participants = ['intentionModelChosen/threshold0.07infoScale8.5', 'intentionModel/threshold0.07infoScale8.5']
-    participants = ['human']
+    # participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
+    # participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
+    # participants = ['human', 'intentionModel/threshold0.07infoScale8.5']
+    # # participants = ['intentionModelChosen/threshold0.07infoScale8.5', 'intentionModel/threshold0.07infoScale8.5']
+    # participants = ['human']
     # decisionStep = 2
     for decisionStep in [6]:  # , 4, 2, 1, 0]:
         statsList = []
@@ -301,7 +301,7 @@ if __name__ == '__main__':
         sigArea = np.where(pvalus < 0.05)[0]
         print(sigArea)
 
-        lables = ['Humans', 'Intention Model']
+        lables = ['Humans', 'MEU Agent']
 
         lineWidth = 1
         # xnew = np.array(list(range(1, 16)))
@@ -340,7 +340,7 @@ if __name__ == '__main__':
         plt.xticks(fontsize=12, color='black')
         plt.yticks(fontsize=12, color='black')
         plt.rcParams['svg.fonttype'] = 'none'
-        # plt.savefig('/Users/chengshaozhe/Downloads/exp2bStep{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
+        plt.savefig('/Users/chengshaozhe/Downloads/exp2bStep{}.svg'.format(str(decisionStep)), dpi=600, format='svg')
 
         # plt.title('Inferred Goal Through Time', fontsize=fontSize, color='black')
         plt.show()

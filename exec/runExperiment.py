@@ -157,7 +157,7 @@ def main():
 
     pygameActionDict = {pg.K_UP: (0, -1), pg.K_DOWN: (0, 1), pg.K_LEFT: (-1, 0), pg.K_RIGHT: (1, 0)}
 
-    responseTimeLimits = 4000
+    responseTimeLimits = 5000
     humanController = HumanController(pygameActionDict, responseTimeLimits)
     controller = humanController
 

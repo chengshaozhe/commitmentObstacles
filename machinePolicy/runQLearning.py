@@ -174,14 +174,15 @@ if __name__ == '__main__':
     isTerminal = IsTerminal(terminals)
 
     reset = Reset(gridSize, isStateValid)
+
 # q-learing
     discountFactor = 0.9
     learningRate = 0.5
     updateQTable = UpdateQTable(discountFactor, learningRate)
     epsilon = 0.1
-    getAction = GetAction(epsilon, actionSpace, argMax)
+    getAction = GetAction(epsilon, actionSpace, chooseMaxAcion)
 
-    episodes = 50000
+    episodes = 5000
     QDict = QLearning(episodes)
     VDict = {state: np.max(values) for state, values in QDict.items()}
 

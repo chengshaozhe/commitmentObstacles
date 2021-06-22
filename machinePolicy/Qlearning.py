@@ -37,6 +37,26 @@ class GetAction:
         return actionIndex
 
 
+def chooseMaxAcion(actionValues):
+    actionMaxList = [index for index, actionValue in enumerate(actionValues) if
+                     actionValue == np.max(actionValues)]
+    action = random.choice(actionMaxList)
+    return action
+
+
+def calculateSoftmaxProbability(acionValues, beta):
+    exponents = np.multiply(beta, acionValues)
+    exponents = np.array([min(700, exponent) for exponent in exponents])
+    newProbabilityList = list(np.divide(np.exp(exponents), np.sum(np.exp(exponents))))
+    return newProbabilityList
+
+
+def chooseSoftMaxAction(actionValues, softmaxBeta=3):
+    softmaxProbabilityList = calculateSoftmaxProbability(actionValues, softmaxBeta)
+    action = list(np.random.multinomial(1, softmaxProbabilityList)).index(1)
+    return action
+
+
 def argMax(stateAction):
     maxIndexList = []
     maxValue = stateAction[0]

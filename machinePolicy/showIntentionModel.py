@@ -101,7 +101,7 @@ class StochasticTransition:
         possibleNextStates = (transition(state, noiseAction) for noiseAction in self.noiseActionSpace)
         validNextStates = list(filter(self.isStateValid, possibleNextStates))
 
-        noiseProbAverged = self.noise / (len(validNextStates) - 1)
+        noiseProbAverged = self.noise / (len(validNextStates) - 1) if len(validNextStates) > 1 else 1
         nextStateProb = {s: noiseProbAverged for s in validNextStates}
         nextStateProb.update({nextState: 1.0 - self.noise})
 
@@ -500,4 +500,5 @@ if __name__ == '__main__':
     goalStates = [(5, 9), (9, 5)]
     obstacles = obstaclesMap6
     target1, target2 = goalStates
+    # target1 = target2
     policies = runModel(target1, target2, obstacles)

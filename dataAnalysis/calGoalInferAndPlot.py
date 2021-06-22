@@ -251,19 +251,19 @@ if __name__ == '__main__':
     noiseActionSpace = [(0, -1), (0, 1), (-1, 0), (1, 0), (1, 1), (1, -1), (-1, -1), (-1, 1)]
     runVI = RunVI(gridSize, actionSpace, noiseActionSpace, noise, gamma, goalReward)
 
-    softmaxBeta = 3
+    softmaxBeta = 2.5
     inferPosterior = InferPosterior(softmaxBeta, runVI)
 
     resultsPath = os.path.join(os.path.join(DIRNAME, '..'), 'results')
 
-    # participants = ['human', 'RL']
+    participants = ['human', 'RL']
     # participants = ['human', 'intentionModel/threshold0.5infoScale11']
-    participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
-    participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
-    participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3']
+    # participants = ['intentionModel/threshold0.3infoScale11', 'intentionModel/threshold0.3infoScale8']
+    # participants = ['human', 'intentionModelChosen/threshold0.07infoScale8.5']
+    # participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3']
     # participants = ['intentionModelChosen/threshold0.07infoScale8.5', 'intentionModel/threshold0.07infoScale8.5']
     # participants = ['human']
-    participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3', 'RL']
+    # participants = ['human', 'intentionModel/threshold0.1infoScale7softmaxBetaInfer3', 'RL']
     # participants = ['human']
     # participants = ['test/human', 'test/intention', 'test/RL']
 
@@ -327,7 +327,8 @@ if __name__ == '__main__':
         sigArea = np.where(pvalus < 0.05)[0]
         print(sigArea)
 
-        lables = ['Humans', 'Intention Model', 'RL']
+        # lables = ['Humans', 'Intention Model', 'RL']
+        lables = ['Humans', 'MEU Agent']
 
         lineWidth = 1
         # xnew = np.array(list(range(1, 16)))
